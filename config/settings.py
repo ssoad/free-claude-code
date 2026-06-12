@@ -217,6 +217,13 @@ class Settings(BaseSettings):
     enable_suggestion_mode_skip: bool = True
     enable_filepath_extraction_mock: bool = True
 
+    # ==================== Admin Remote Access ====================
+    # When true, the /admin UI and its API endpoints are accessible from remote hosts.
+    # Requires ANTHROPIC_AUTH_TOKEN to be set for security.
+    admin_remote_access: bool = Field(
+        default=False, validation_alias="FCC_ADMIN_REMOTE_ACCESS"
+    )
+
     # ==================== Local web server tools (web_search / web_fetch) ====================
     # Off by default: these tools perform outbound HTTP from the proxy (SSRF risk).
     enable_web_server_tools: bool = Field(
@@ -433,6 +440,17 @@ class Settings(BaseSettings):
         dotenv_value = _env_file_override(self.model_config, "ANTHROPIC_AUTH_TOKEN")
         if dotenv_value is not None:
             self.anthropic_auth_token = dotenv_value
+        return self
+
+    @model_validator(mode="after")
+    def check_admin_remote_access_requires_auth(self) -> Settings:
+        """Require ANTHROPIC_AUTH_TOKEN when admin remote access is enabled."""
+        if self.admin_remote_access and not self.anthropic_auth_token.strip():
+            raise ValueError(
+                "ANTHROPIC_AUTH_TOKEN must be set when FCC_ADMIN_REMOTE_ACCESS "
+                "is enabled. Remote admin access without authentication is not "
+                "allowed."
+            )
         return self
 
     def uses_process_anthropic_auth_token(self) -> bool:

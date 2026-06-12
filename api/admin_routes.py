@@ -62,7 +62,17 @@ def _origin_is_local(origin: str | None) -> bool:
 
 
 def require_loopback_admin(request: Request) -> None:
-    """Allow admin access only from the local machine."""
+    """Allow admin access only from the local machine, or via API key when remote access is enabled."""
+    from config.settings import get_settings as get_cached_settings_for_admin
+
+    from .dependencies import require_api_key
+
+    settings = get_cached_settings_for_admin()
+
+    if settings.admin_remote_access:
+        # Remote admin enabled: authenticate via API key instead of loopback check
+        require_api_key(request, settings)
+        return
 
     client_host = request.client.host if request.client else None
     if not _is_loopback_host(client_host):

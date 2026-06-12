@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 from fastapi import FastAPI
 from loguru import logger
 
-from api.admin_urls import local_admin_url
+from api.admin_urls import admin_launch_message
 from config.settings import Settings, get_settings
 from providers.exceptions import ServiceUnavailableError
 from providers.registry import ProviderRegistry
@@ -102,7 +102,6 @@ class AppRuntime:
 
     async def startup(self) -> None:
         logger.info("Starting Claude Code Proxy...")
-        admin_url = local_admin_url(self.settings)
         self._provider_registry = ProviderRegistry()
         self.app.state.provider_registry = self._provider_registry
         try:
@@ -112,7 +111,7 @@ class AppRuntime:
             await self._start_messaging_if_configured()
             self._publish_state()
             logging.getLogger("uvicorn.error").info(
-                "Admin UI: %s (local-only)", admin_url
+                "%s", admin_launch_message(self.settings)
             )
         except Exception as exc:
             log_startup_failure(self.settings, exc)

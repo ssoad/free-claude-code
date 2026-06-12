@@ -1,0 +1,28 @@
+services:
+  free-claude-code:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: free-claude-code
+    ports:
+      - "8082:8082"
+    volumes:
+      # Persist configuration and logs
+      - fcc-data:/root/.fcc
+      # Optional: Mount a local workspace for Claude to interact with
+      # - ./workspace:/app/workspace
+    environment:
+      # Required for remote admin access
+      - FCC_ADMIN_REMOTE_ACCESS=true
+      # You MUST set this token to access the admin UI remotely and to authenticate requests from Claude Code
+      # - ANTHROPIC_AUTH_TOKEN=your_super_secret_key
+      
+      # Optional settings:
+      # - MODEL=open_router/anthropic/claude-3.5-sonnet
+      # - OPENROUTER_API_KEY=your_openrouter_key
+      # - MESSAGING_PLATFORM=discord
+      # - DISCORD_BOT_TOKEN=your_bot_token
+    restart: unless-stopped
+
+volumes:
+  fcc-data:

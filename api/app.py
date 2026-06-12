@@ -110,6 +110,19 @@ def create_app(*, lifespan_enabled: bool = True) -> FastAPI:
             response = await call_next(request)
         return response
 
+    # Enable CORS when remote admin access is configured, so the admin UI
+    # JavaScript can call admin API endpoints from a non-localhost browser.
+    if settings.admin_remote_access:
+        from starlette.middleware.cors import CORSMiddleware
+
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
     # Register routes
     app.include_router(admin_router)
     app.include_router(router)

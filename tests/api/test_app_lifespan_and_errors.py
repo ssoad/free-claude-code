@@ -30,6 +30,7 @@ _RUNTIME_EXTRAS = {
     "log_raw_cli_diagnostics": False,
     "log_messaging_error_details": False,
     "configured_chat_model_refs": lambda: (),
+    "admin_remote_access": False,
 }
 
 
@@ -78,6 +79,7 @@ async def test_runtime_startup_logs_admin_url_without_printed_server_banner(tmp_
         claude_workspace=str(tmp_path / "data"),
         host="127.0.0.1",
         port=9099,
+        admin_remote_access=False,
     )
     runtime = api_runtime_mod.AppRuntime(
         app=FastAPI(), settings=cast(Settings, settings)
@@ -104,8 +106,8 @@ async def test_runtime_startup_logs_admin_url_without_printed_server_banner(tmp_
     printed.assert_not_called()
     get_logger.assert_called_with("uvicorn.error")
     uvicorn_logger.info.assert_called_once_with(
-        "Admin UI: %s (local-only)",
-        "http://127.0.0.1:9099/admin",
+        "%s",
+        "Admin UI: http://127.0.0.1:9099/admin (local-only)",
     )
     logged = " ".join(str(arg) for call in app_info.call_args_list for arg in call.args)
     assert "Server URL:" not in logged
