@@ -122,7 +122,7 @@ def require_api_key(
             decoded = base64.b64decode(b64_creds).decode("utf-8")
             # Basic Auth format is username:password. We treat the password as the token.
             token = decoded.split(":", 1)[1] if ":" in decoded else decoded
-        except binascii.Error, UnicodeDecodeError:
+        except (binascii.Error, UnicodeDecodeError):  # fmt: skip
             pass
 
     # Strip anything after the first colon to handle tokens with appended model names
