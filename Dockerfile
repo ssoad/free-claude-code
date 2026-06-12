@@ -9,7 +9,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user (appuser) to run the application
-RUN useradd -M -u 1000 appuser
+RUN useradd -M -u 1000 -d /root appuser
 
 # Copy uv from the official astral image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
