@@ -2,11 +2,14 @@ FROM debian:bookworm-slim
 
 # Install system dependencies (curl and ca-certificates are required for downloading Python via uv)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates && \
+    apt-get install -y --no-install-recommends curl ca-certificates gosu && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     npm install -g @anthropic-ai/claude-code && \
     rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user (appuser) to run the application
+RUN useradd -M -u 1000 appuser
 
 # Copy uv from the official astral image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
@@ -45,8 +48,13 @@ ENV FCC_ADMIN_REMOTE_ACCESS="true"
 # We'll map /root/.fcc to a volume in docker-compose for persistence
 VOLUME ["/root/.fcc"]
 
+# Add entrypoint script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # Expose the proxy port
 EXPOSE 8082
 
 # Start the server
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["fcc-server"]
