@@ -50,7 +50,8 @@ VOLUME ["/root/.fcc"]
 
 # Add entrypoint script
 COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh && \
+    sed -i 's/\r$//' /docker-entrypoint.sh
 
 # Expose the proxy port
 EXPOSE 8082
