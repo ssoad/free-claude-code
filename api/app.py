@@ -123,9 +123,12 @@ def create_app(*, lifespan_enabled: bool = True) -> FastAPI:
             allow_headers=["*"],
         )
 
+    from .openai_routes import router as openai_router
+
     # Register routes
     app.include_router(admin_router)
     app.include_router(router)
+    app.include_router(openai_router)
 
     # Exception handlers
     @app.exception_handler(RequestValidationError)
