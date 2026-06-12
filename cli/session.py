@@ -129,6 +129,10 @@ class CLISession:
             env["TERM"] = "dumb"
             env["PYTHONIOENCODING"] = "utf-8"
 
+            from config.paths import config_dir_path
+
+            env["HOME"] = str(config_dir_path())
+
             # Build command
             if session_id and not session_id.startswith("pending_"):
                 cmd = [
