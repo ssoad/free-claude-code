@@ -71,7 +71,16 @@ def require_loopback_admin(request: Request) -> None:
 
     if settings.admin_remote_access:
         # Remote admin enabled: authenticate via API key instead of loopback check
-        require_api_key(request, settings)
+        try:
+            require_api_key(request, settings)
+        except HTTPException as e:
+            if e.status_code == 401:
+                headers = dict(e.headers or {})
+                headers["WWW-Authenticate"] = 'Basic realm="Free Claude Code Admin"'
+                raise HTTPException(
+                    status_code=401, detail=e.detail, headers=headers
+                ) from e
+            raise e
         return
 
     client_host = request.client.host if request.client else None

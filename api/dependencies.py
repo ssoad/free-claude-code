@@ -109,10 +109,21 @@ def require_api_key(
     if not header:
         raise HTTPException(status_code=401, detail="Missing API key")
 
-    # Support both raw key in X-API-Key and Bearer token in Authorization
+    # Support raw key in X-API-Key, Bearer token, and Basic Auth
     token = header.strip()
     if header.lower().startswith("bearer "):
         token = header.split(" ", 1)[1].strip()
+    elif header.lower().startswith("basic "):
+        import base64
+        import binascii
+
+        b64_creds = header.split(" ", 1)[1].strip()
+        try:
+            decoded = base64.b64decode(b64_creds).decode("utf-8")
+            # Basic Auth format is username:password. We treat the password as the token.
+            token = decoded.split(":", 1)[1] if ":" in decoded else decoded
+        except binascii.Error, UnicodeDecodeError:
+            pass
 
     # Strip anything after the first colon to handle tokens with appended model names
     if token and ":" in token:
