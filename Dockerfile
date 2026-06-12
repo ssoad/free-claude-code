@@ -38,6 +38,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
 
+# Pre-cache tiktoken encodings to eliminate runtime network dependencies (fail gracefully if blocked)
+ENV TIKTOKEN_CACHE_DIR="/app/.tiktoken_cache"
+RUN python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')" || true
+
 # Configuration environment variables
 ENV HOST="0.0.0.0"
 ENV PORT="8082"
