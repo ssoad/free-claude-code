@@ -195,16 +195,7 @@ async def probe_count_tokens(_auth=Depends(require_api_key)):
     return _probe_response("POST, HEAD, OPTIONS")
 
 
-@router.get("/")
-async def root(
-    settings: Settings = Depends(get_settings), _auth=Depends(require_api_key)
-):
-    """Root endpoint."""
-    return {
-        "status": "ok",
-        "provider": settings.provider_type,
-        "model": settings.model,
-    }
+
 
 
 @router.api_route("/", methods=["HEAD", "OPTIONS"])
