@@ -18,6 +18,13 @@
   --sidebar-bg: #141414;
   --scrollbar-thumb: #555555;
   --modal-overlay: rgba(0, 0, 0, 0.6);
+  
+  /* Markdown Theme Colors (Dark) */
+  --code-bg: #2d2d2d;
+  --code-text: #e879f9;
+  --pre-bg: #0d1117;
+  --pre-text: #e2e8f0;
+  --link-hover: #818cf8;
 }
 
 /* Light Mode Overrides */
@@ -38,6 +45,13 @@
   --sidebar-bg: #f9fafb;
   --scrollbar-thumb: #d1d5db;
   --modal-overlay: rgba(0, 0, 0, 0.4);
+  
+  /* Markdown Theme Colors (Light) */
+  --code-bg: #f4f4f5;
+  --code-text: #c026d3;
+  --pre-bg: #f8fafc;
+  --pre-text: #334155;
+  --link-hover: #4f46e5;
 }
 
 * {
@@ -371,7 +385,7 @@ button:disabled {
 }
 
 .message-content a:hover {
-  color: #818cf8;
+  color: var(--link-hover);
 }
 
 .message-content strong {
@@ -380,16 +394,16 @@ button:disabled {
 }
 
 .message-content code {
-  background: var(--bg-card);
+  background: var(--code-bg);
   padding: 0.2em 0.4em;
   border-radius: 4px;
   font-size: 0.85em;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  color: #e879f9;
+  color: var(--code-text);
 }
 
 .message-content pre {
-  background: #0d1117;
+  background: var(--pre-bg);
   padding: 16px;
   border-radius: 8px;
   overflow-x: auto;
@@ -400,7 +414,7 @@ button:disabled {
 .message-content pre code {
   background: transparent;
   padding: 0;
-  color: #e2e8f0;
+  color: var(--pre-text);
   font-size: 0.85rem;
 }
 
