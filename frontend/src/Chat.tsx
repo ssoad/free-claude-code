@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, LogOut, User as UserIcon, Paperclip, X, Check, Copy, FileText, ChevronDown, ChevronRight, Settings, Plus, MessageSquare, Sun, Moon } from 'lucide-react';
+import { Send, LogOut, User as UserIcon, Paperclip, X, Check, Copy, FileText, ChevronDown, ChevronRight, Settings, Plus, MessageSquare, Sun, Moon, Trash2, Edit2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomDark, prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import SettingsModal from './SettingsModal';
 
 interface ModelInfo {
   id: string;
@@ -23,6 +24,12 @@ interface Message {
   content: string | any[];
 }
 
+interface ChatSession {
+  id: number;
+  title: string;
+  updated_at: string;
+}
+
 export default function Chat({ onLogout }: { onLogout: () => void }) {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
@@ -30,17 +37,22 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
 
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
+  const [systemPrompt, setSystemPrompt] = useState<string>('');
   
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [showSettings, setShowSettings] = useState(false);
+  const [displayName, setDisplayName] = useState<string>(localStorage.getItem('username') || 'User');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const username = localStorage.getItem('username');
-
   useEffect(() => {
     document.body.className = theme === 'light' ? 'light-mode' : '';
     localStorage.setItem('theme', theme);
@@ -48,6 +60,8 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
 
   useEffect(() => {
     fetchModels();
+    fetchProfile();
+    fetchSessions();
   }, []);
 
   useEffect(() => {
@@ -58,16 +72,25 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
+  const fetchProfile = async () => {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+    if (res.ok) {
+      const data = await res.json();
+      setDisplayName(data.display_name || data.username);
+      if (data.settings?.defaultModel) setSelectedModel(data.settings.defaultModel);
+      if (data.settings?.systemPrompt) setSystemPrompt(data.settings.systemPrompt);
+    }
+  };
+
   const fetchModels = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('/v1/models', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch('/v1/models', { headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
         setModels(data.data || []);
-        if (data.data?.length > 0) {
+        if (data.data?.length > 0 && !selectedModel) {
           setSelectedModel(data.data[0].id);
         }
       }
@@ -76,14 +99,55 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
     }
   };
 
+  const fetchSessions = async () => {
+    const token = localStorage.getItem('token');
+    const res = await fetch('/api/chat/sessions', { headers: { 'Authorization': `Bearer ${token}` } });
+    if (res.ok) {
+      setSessions(await res.json());
+    }
+  };
+
+  const loadSession = async (id: number) => {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/chat/sessions/${id}`, { headers: { 'Authorization': `Bearer ${token}` } });
+    if (res.ok) {
+      setActiveSessionId(id);
+      setMessages(await res.json());
+    }
+  };
+
+  const deleteSession = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/chat/sessions/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+    if (res.ok) {
+      setSessions(prev => prev.filter(s => s.id !== id));
+      if (activeSessionId === id) {
+        setActiveSessionId(null);
+        setMessages([]);
+      }
+    }
+  };
+
+  const syncMessages = async (sessionId: number, currentMessages: Message[]) => {
+    const token = localStorage.getItem('token');
+    await fetch(`/api/chat/sessions/${sessionId}/messages`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ messages: currentMessages })
+    });
+    fetchSessions(); // Refresh updated_at
+  };
+
+  const createNewSession = () => {
+    setActiveSessionId(null);
+    setMessages([]);
+  };
+
   const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64Data = result.split(',')[1];
-      resolve(base64Data);
-    };
+    reader.onload = () => resolve((reader.result as string).split(',')[1]);
     reader.onerror = error => reject(error);
   });
 
@@ -101,63 +165,70 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
         }
         newAttachments.push({ file, base64, previewUrl });
       } catch (err) {
-        console.error('File read error:', err);
+        console.error("Error reading file", err);
       }
     }
-    
     setAttachments(prev => [...prev, ...newAttachments]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const removeAttachment = (index: number) => {
     setAttachments(prev => {
-      const newAtt = [...prev];
-      if (newAtt[index].previewUrl) URL.revokeObjectURL(newAtt[index].previewUrl!);
-      newAtt.splice(index, 1);
-      return newAtt;
+      const updated = [...prev];
+      if (updated[index].previewUrl) URL.revokeObjectURL(updated[index].previewUrl);
+      updated.splice(index, 1);
+      return updated;
     });
   };
 
   const handleSend = async () => {
     if ((!input.trim() && attachments.length === 0) || loading) return;
-    if (!selectedModel) {
-      alert("Please select a model first");
-      return;
-    }
-    
-    let content: any = input.trim();
-    const currentAtt = [...attachments];
-    
-    if (currentAtt.length > 0) {
+
+    let content: any = input;
+    if (attachments.length > 0) {
       content = [];
-      for (const att of currentAtt) {
+      attachments.forEach(att => {
         if (att.file.type.startsWith('image/')) {
-          content.push({
-            type: 'image',
-            source: { type: 'base64', media_type: att.file.type, data: att.base64 },
-            _previewUrl: att.previewUrl
-          });
+          content.push({ type: 'image', source: { type: 'base64', media_type: att.file.type, data: att.base64 }, _previewUrl: att.previewUrl });
         } else if (att.file.type === 'application/pdf') {
-          content.push({
-            type: 'document',
-            source: { type: 'base64', media_type: 'application/pdf', data: att.base64 },
-            title: att.file.name
-          });
+          content.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: att.base64 }, title: att.file.name });
+        } else {
+          content.push({ type: 'text', text: `[Attached File: ${att.file.name}]` });
         }
-      }
+      });
       if (input.trim()) {
-        content.push({ type: 'text', text: input.trim() });
+        content.push({ type: 'text', text: input });
       }
     }
 
-    setMessages(prev => [...prev, { role: 'user', content }]);
+    const newMessages = [...messages, { role: 'user', content }];
+    setMessages(newMessages as Message[]);
     setInput('');
     setAttachments([]);
     setLoading(true);
 
     try {
       const token = localStorage.getItem('token');
-      const apiMessages = [...messages, { role: 'user', content }].map(m => {
+      
+      let currentSessionId = activeSessionId;
+      // Auto-create session if it's the first message
+      if (!currentSessionId) {
+        const title = typeof content === 'string' ? content.substring(0, 30) : 'New Chat';
+        const sessionRes = await fetch('/api/chat/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ title: title || 'New Chat' })
+        });
+        if (sessionRes.ok) {
+          const sessionData = await sessionRes.json();
+          currentSessionId = sessionData.id;
+          setActiveSessionId(currentSessionId);
+          setSessions(prev => [sessionData, ...prev]);
+        }
+      }
+
+      // Prepare API payload (remove UI-only properties)
+      const apiMessages = newMessages.map(m => {
         if (Array.isArray(m.content)) {
           return {
             role: m.role,
@@ -172,33 +243,35 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
         return m;
       });
 
+      const payload: any = {
+        model: selectedModel,
+        messages: apiMessages,
+        max_tokens: 4096,
+        stream: true
+      };
+      if (systemPrompt) {
+        payload.system = [{ type: "text", text: systemPrompt }];
+      }
+
       const res = await fetch('/v1/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          model: selectedModel,
-          messages: apiMessages,
-          max_tokens: 4096,
-          stream: true
-        })
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
       });
 
       if (!res.ok) {
-        if (res.status === 401) {
-          onLogout(); return;
-        }
+        if (res.status === 401) { onLogout(); return; }
         throw new Error('API request failed: ' + res.status);
       }
 
       setLoading(false);
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+      
+      const newResponseMsg: Message = { role: 'assistant', content: '' };
+      setMessages(prev => [...prev, newResponseMsg]);
 
       const reader = res.body?.getReader();
       const decoder = new TextDecoder("utf-8");
-      let currentMessage = '';
+      let currentMessageText = '';
       
       if (reader) {
         while (true) {
@@ -214,17 +287,29 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
               try {
                 const data = JSON.parse(dataStr);
                 if (data.type === 'content_block_delta' && data.delta?.text) {
-                  currentMessage += data.delta.text;
+                  currentMessageText += data.delta.text;
                   setMessages(prev => {
-                    const newMessages = [...prev];
-                    newMessages[newMessages.length - 1].content = currentMessage;
-                    return newMessages;
+                    const latest = [...prev];
+                    latest[latest.length - 1].content = currentMessageText;
+                    return latest;
+                  });
+                } else if (data.type === 'message_start' && data.message?.content?.[0]?.text) {
+                  currentMessageText += data.message.content[0].text;
+                  setMessages(prev => {
+                    const latest = [...prev];
+                    latest[latest.length - 1].content = currentMessageText;
+                    return latest;
                   });
                 }
               } catch(e) {}
             }
           }
         }
+      }
+
+      // Sync final state to DB
+      if (currentSessionId) {
+        await syncMessages(currentSessionId, [...newMessages, { role: 'assistant', content: currentMessageText }] as Message[]);
       }
 
     } catch (err) {
@@ -279,11 +364,13 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
           style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: 'var(--bg-card)', fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}
         >
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          <span>Thinking Process</span>
+          Thinking Process
         </div>
         {expanded && (
-          <div style={{ padding: '14px', fontSize: '0.9rem', color: 'var(--text-muted)', borderTop: '1px solid var(--panel-border)', background: 'var(--input-bg)' }}>
-            {children}
+          <div style={{ padding: '14px', borderTop: '1px solid var(--panel-border)', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code: CodeBlock as any }}>
+              {String(children)}
+            </ReactMarkdown>
           </div>
         )}
       </div>
@@ -292,9 +379,7 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
 
   const renderContent = (content: string | any[]) => {
     if (typeof content === 'string') {
-      let processed = content.replace(/<think>([\s\S]*?)<\/think>/g, (_, p1) => {
-        return `<think>${p1}</think>`;
-      });
+      const processed = content.replace(/<think>([\s\S]*?)<\/think>/g, '<think>$1</think>');
       return (
         <ReactMarkdown 
           remarkPlugins={[remarkGfm]}
@@ -336,7 +421,7 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
     <div className="chat-layout animate-fade-in">
       <div className="sidebar">
         <div className="sidebar-header">
-          <button className="new-chat-btn" onClick={() => setMessages([])}>
+          <button className="new-chat-btn" onClick={createNewSession}>
             <span>New chat</span>
             <Plus size={18} />
           </button>
@@ -344,28 +429,30 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
         
         <div className="sidebar-history">
           <div className="history-section">
-            <div className="history-title">Today</div>
-            {messages.length > 0 ? (
-               <div className="history-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                 <MessageSquare size={14} color="var(--text-muted)" />
-                 {typeof messages[0].content === 'string' 
-                    ? messages[0].content.substring(0, 25) + '...' 
-                    : 'Chat with attachments'}
-               </div>
-            ) : (
-               <div style={{ padding: '0 8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>No recent chats</div>
+            <div className="history-title">Chat History</div>
+            {sessions.map(session => (
+              <div 
+                key={session.id} 
+                className={`history-item ${activeSessionId === session.id ? 'active' : ''}`} 
+                onClick={() => loadSession(session.id)}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', cursor: 'pointer' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                  <MessageSquare size={14} color="var(--text-muted)" />
+                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{session.title}</span>
+                </div>
+                <button 
+                  onClick={(e) => deleteSession(session.id, e)} 
+                  className="delete-session-btn" 
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', opacity: 0.6 }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+            {sessions.length === 0 && (
+              <div style={{ padding: '0 8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>No recent chats</div>
             )}
-          </div>
-          <div className="history-section">
-            <div className="history-title">Previous 7 Days</div>
-            <div className="history-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MessageSquare size={14} color="var(--text-muted)" />
-              Setup documentation...
-            </div>
-            <div className="history-item" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MessageSquare size={14} color="var(--text-muted)" />
-              React components build...
-            </div>
           </div>
         </div>
 
@@ -374,124 +461,131 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
             <div className="message-avatar" style={{ background: 'var(--accent)', borderColor: 'var(--accent)' }}>
               <UserIcon size={18} color="white" />
             </div>
-            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{username}</div>
+            <div style={{ fontWeight: 600, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
           </div>
           
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={toggleTheme} style={{ background: 'transparent', padding: '8px', color: 'var(--text-muted)', borderRadius: '8px' }} title="Toggle Theme">
+            <button className="icon-btn" onClick={() => setShowSettings(true)} title="Settings">
+              <Settings size={18} />
+            </button>
+            <button className="icon-btn" onClick={toggleTheme} title="Toggle Theme">
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-            <button onClick={onLogout} style={{ background: 'transparent', padding: '8px', color: 'var(--text-muted)', borderRadius: '8px' }} title="Sign Out">
+            <button className="icon-btn" onClick={onLogout} title="Sign out">
               <LogOut size={18} />
             </button>
           </div>
         </div>
       </div>
 
-      <div className="main-chat">
-        <div className="messages-container">
+      <div className="chat-main">
+        <div className="chat-feed">
           {messages.length === 0 ? (
-            <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <h1 style={{ marginBottom: '12px', color: 'var(--text-main)', fontSize: '2rem', fontWeight: 700 }}>How can I help you today?</h1>
-              <p style={{ fontSize: '1.1rem' }}>Type a message or upload a document to begin.</p>
+            <div className="empty-state">
+              <h2>What can I help you with?</h2>
+              <p>Type a message or upload a file to get started.</p>
             </div>
           ) : (
-            messages.map((msg, i) => (
-              <div key={i} className={`message ${msg.role}`}>
+            messages.map((msg, idx) => (
+              <div key={idx} className={`message-wrapper ${msg.role}`}>
                 <div className="message-avatar">
-                  {msg.role === 'user' ? <UserIcon size={18} color={theme === 'light' ? 'white' : 'white'} /> : '🤖'}
+                  {msg.role === 'user' ? <UserIcon size={20} /> : <img src="/favicon.svg" alt="AI" width={20} height={20} />}
                 </div>
-                <div className="message-content">
-                  <div style={{ fontWeight: 600, marginBottom: '6px', fontSize: '0.85rem', color: msg.role === 'user' ? 'inherit' : 'var(--text-muted)', opacity: msg.role === 'user' ? 0.9 : 1 }}>
-                    {msg.role === 'user' ? 'You' : 'Assistant'}
-                  </div>
+                <div className={`message-bubble ${msg.role}`}>
                   {renderContent(msg.content)}
                 </div>
               </div>
             ))
           )}
+          
           {loading && (
-            <div className="message assistant">
-              <div className="message-avatar">🤖</div>
-              <div className="message-content" style={{ color: 'var(--text-muted)' }}>Thinking...</div>
+            <div className="message-wrapper assistant animate-fade-in">
+              <div className="message-avatar">
+                <img src="/favicon.svg" alt="AI" width={20} height={20} />
+              </div>
+              <div className="message-bubble assistant">
+                <div className="typing-indicator">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="input-area">
-          <div className="input-container">
-            {attachments.length > 0 && (
-              <div style={{ display: 'flex', gap: '12px', padding: '8px 4px 16px 4px', flexWrap: 'wrap', borderBottom: '1px solid var(--panel-border)', marginBottom: '8px' }}>
-                {attachments.map((att, i) => (
-                  <div key={i} style={{ position: 'relative', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '12px', padding: att.previewUrl ? '6px' : '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {att.previewUrl ? (
-                      <img src={att.previewUrl} alt="preview" style={{ height: '48px', width: '48px', objectFit: 'cover', borderRadius: '6px' }} />
-                    ) : (
-                      <FileText size={24} color="var(--accent)" />
-                    )}
-                    {!att.previewUrl && <span style={{ fontSize: '0.85rem', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{att.file.name}</span>}
-                    <button onClick={() => removeAttachment(i)} style={{ position: 'absolute', top: '-8px', right: '-8px', background: 'var(--danger)', color: 'white', border: 'none', borderRadius: '50%', padding: '4px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
-                      <X size={12} strokeWidth={3} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+        <div className="input-container">
+          {attachments.length > 0 && (
+            <div className="attachments-preview">
+              {attachments.map((att, idx) => (
+                <div key={idx} className="attachment-item">
+                  {att.previewUrl ? (
+                    <img src={att.previewUrl} alt="preview" />
+                  ) : (
+                    <div style={{ padding: '8px' }}><FileText size={24} color="var(--accent)" /></div>
+                  )}
+                  <button onClick={() => removeAttachment(idx)}><X size={14} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="input-box">
+            <div className="model-selector-wrapper">
+              <select className="model-selector" value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
+                {models.map(m => <option key={m.id} value={m.id}>{m.name || m.id}</option>)}
+              </select>
+            </div>
+
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Message Claude..."
+              rows={1}
+            />
             
-            <div className="input-wrapper">
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                style={{ background: 'transparent', border: 'none', padding: '10px 4px', color: 'var(--text-muted)', cursor: 'pointer', transition: 'color 0.2s' }}
-                title="Attach Image or PDF"
-              >
-                <Paperclip size={22} />
-              </button>
+            <div className="input-actions">
               <input 
                 type="file" 
                 ref={fileInputRef} 
                 style={{ display: 'none' }} 
                 multiple 
-                accept="image/png, image/jpeg, image/webp, application/pdf" 
-                onChange={handleFileSelect} 
+                accept="image/*,application/pdf"
+                onChange={handleFileSelect}
               />
-              
-              <textarea 
-                className="chat-input"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                placeholder="Message Assistant..."
-                rows={Math.min(5, input.split('\n').length)}
-              />
-              
+              <button className="attach-btn" onClick={() => fileInputRef.current?.click()}>
+                <Paperclip size={20} />
+              </button>
               <button 
-                className="send-button"
+                className={`send-btn ${input.trim() || attachments.length ? 'active' : ''}`}
                 onClick={handleSend}
-                disabled={(!input.trim() && attachments.length === 0) || loading}
+                disabled={(!input.trim() && !attachments.length) || loading}
               >
                 <Send size={18} />
               </button>
             </div>
           </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--panel-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', padding: '6px 16px', borderRadius: '24px', border: '1px solid var(--panel-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-              <Settings size={14} color="var(--text-muted)" />
-              <select 
-                value={selectedModel} 
-                onChange={e => setSelectedModel(e.target.value)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.85rem', fontWeight: 500, outline: 'none', cursor: 'pointer', appearance: 'none', paddingRight: '12px' }}
-              >
-                {models.length === 0 && <option value="">Loading models...</option>}
-                {models.map(m => (
-                  <option key={m.id} value={m.id}>{m.name || m.id}</option>
-                ))}
-              </select>
-            </div>
+          <div className="input-footer">
+            AI can make mistakes. Please verify important information.
           </div>
         </div>
       </div>
+
+      {showSettings && (
+        <SettingsModal 
+          onClose={() => setShowSettings(false)} 
+          onProfileUpdate={(profile) => {
+            setDisplayName(profile.display_name || profile.username);
+            if (profile.settings?.defaultModel) setSelectedModel(profile.settings.defaultModel);
+            if (profile.settings?.systemPrompt) setSystemPrompt(profile.settings.systemPrompt);
+          }} 
+        />
+      )}
     </div>
   );
 }

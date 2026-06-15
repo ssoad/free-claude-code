@@ -1,5 +1,7 @@
 """Authentication APIs for public user registration and login."""
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
@@ -75,9 +77,61 @@ def signin(user_data: UserLogin, db: Session = Depends(get_db)):
 
 class UserProfile(BaseModel):
     username: str
+    display_name: str | None = None
+    settings: dict | None = None
+
+
+class ProfileUpdate(BaseModel):
+    display_name: str | None = None
+    password: str | None = None
+
+
+class SettingsUpdate(BaseModel):
+    settings: dict
 
 
 @router.get("/me", response_model=UserProfile)
 def get_me(current_user: User = Depends(get_current_user)):
     """Get the profile of the currently logged-in user."""
-    return UserProfile(username=current_user.username)
+    return UserProfile(
+        username=current_user.username,
+        display_name=current_user.display_name,
+        settings=current_user.get_settings(),
+    )
+
+
+@router.put("/me/profile", response_model=UserProfile)
+def update_profile(
+    data: ProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update display name or password."""
+    if data.display_name is not None:
+        current_user.display_name = data.display_name
+    if data.password:
+        current_user.password_hash = get_password_hash(data.password)
+    db.commit()
+    return UserProfile(
+        username=current_user.username,
+        display_name=current_user.display_name,
+        settings=current_user.get_settings(),
+    )
+
+
+@router.put("/me/settings", response_model=UserProfile)
+def update_settings(
+    data: SettingsUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update user preferences/settings."""
+    current_settings = current_user.get_settings()
+    current_settings.update(data.settings)
+    current_user.settings = json.dumps(current_settings)
+    db.commit()
+    return UserProfile(
+        username=current_user.username,
+        display_name=current_user.display_name,
+        settings=current_settings,
+    )
