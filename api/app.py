@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -123,12 +123,14 @@ def create_app(*, lifespan_enabled: bool = True) -> FastAPI:
             allow_headers=["*"],
         )
 
+    from .auth_routes import router as auth_router
     from .openai_routes import router as openai_router
 
     # Register routes
     app.include_router(admin_router)
     app.include_router(router)
     app.include_router(openai_router)
+    app.include_router(auth_router)
 
     # Exception handlers
     @app.exception_handler(RequestValidationError)
@@ -201,6 +203,44 @@ def create_app(*, lifespan_enabled: bool = True) -> FastAPI:
                 },
             },
         )
+
+    # Serve the frontend Single Page Application
+    from fastapi.responses import FileResponse, HTMLResponse
+    from fastapi.staticfiles import StaticFiles
+
+    frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+    if frontend_dist.is_dir():
+        assets_dir = frontend_dist / "assets"
+        if assets_dir.is_dir():
+            app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+        @app.exception_handler(404)
+        async def spa_404_handler(request: Request, exc: HTTPException):
+            full_path = request.url.path.lstrip("/")
+
+            # Skip API endpoints
+            if (
+                full_path.startswith("api/")
+                or full_path.startswith("v1/")
+                or full_path.startswith("admin/")
+            ):
+                return JSONResponse({"detail": "Not Found"}, status_code=404)
+
+            # Look for requested file directly in dist (e.g. vite.svg, favicon)
+            requested_file = frontend_dist / full_path
+            if (
+                full_path
+                and requested_file.is_file()
+                and not requested_file.name.endswith(".html")
+            ):
+                return FileResponse(requested_file)
+
+            # Serve index.html as fallback for React Router SPA
+            index_path = frontend_dist / "index.html"
+            if index_path.is_file():
+                return HTMLResponse(index_path.read_text())
+
+            return JSONResponse({"detail": "Frontend not built"}, status_code=404)
 
     return app
 

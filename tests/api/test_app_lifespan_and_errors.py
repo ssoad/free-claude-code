@@ -119,7 +119,7 @@ def test_create_app_provider_error_handler_returns_anthropic_format():
 
     app = create_app()
 
-    @app.get("/raise_provider")
+    @app.get("/api/raise_provider")
     async def _raise_provider():
         raise AuthenticationError("bad key")
 
@@ -140,7 +140,7 @@ def test_create_app_provider_error_handler_returns_anthropic_format():
         patch.object(ProviderRegistry, "cleanup", new=AsyncMock()),
     ):
         with TestClient(app) as client:
-            resp = client.get("/raise_provider")
+            resp = client.get("/api/raise_provider")
         assert resp.status_code == 401
     body = resp.json()
     assert body["type"] == "error"
@@ -155,7 +155,7 @@ def test_create_app_provider_error_default_logs_exclude_provider_message():
     app = create_app()
     secret = "provider-upstream-secret-detail"
 
-    @app.get("/raise_provider_secret")
+    @app.get("/api/raise_provider_secret")
     async def _raise():
         raise AuthenticationError(secret)
 
@@ -178,7 +178,7 @@ def test_create_app_provider_error_default_logs_exclude_provider_message():
         patch.object(api_app_mod.logger, "error") as log_err,
     ):
         with TestClient(app) as client:
-            resp = client.get("/raise_provider_secret")
+            resp = client.get("/api/raise_provider_secret")
         assert resp.status_code == 401
 
     blob = " ".join(str(a) for c in log_err.call_args_list for a in c.args)
@@ -192,7 +192,7 @@ def test_create_app_general_exception_handler_returns_500():
 
     app = create_app()
 
-    @app.get("/raise_general")
+    @app.get("/api/raise_general")
     async def _raise_general():
         raise RuntimeError("boom")
 
@@ -213,7 +213,7 @@ def test_create_app_general_exception_handler_returns_500():
         patch.object(ProviderRegistry, "cleanup", new=AsyncMock()),
     ):
         with TestClient(app, raise_server_exceptions=False) as client:
-            resp = client.get("/raise_general")
+            resp = client.get("/api/raise_general")
         assert resp.status_code == 500
         body = resp.json()
         assert body["type"] == "error"
@@ -228,7 +228,7 @@ def test_create_app_general_exception_default_logs_exclude_exception_message():
 
     secret = "user-provided-secret-token-xyzzy"
 
-    @app.get("/raise_secret")
+    @app.get("/api/raise_secret")
     async def _raise_secret():
         raise ValueError(secret)
 
@@ -251,7 +251,7 @@ def test_create_app_general_exception_default_logs_exclude_exception_message():
         patch.object(api_app_mod.logger, "error") as log_err,
     ):
         with TestClient(app, raise_server_exceptions=False) as client:
-            resp = client.get("/raise_secret")
+            resp = client.get("/api/raise_secret")
         assert resp.status_code == 500
 
     flattened: list[str] = []

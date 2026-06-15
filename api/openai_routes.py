@@ -24,9 +24,8 @@ async def chat_completions(
     anthropic_dict = openai_to_anthropic_request(openai_body)
     anthropic_request = MessagesRequest.model_validate(anthropic_dict)
 
-    from fastapi.responses import StreamingResponse
     from typing import cast
-    
+
     # We always stream, so the proxy service returns a StreamingResponse of Anthropic SSE
     response = service.create_message(anthropic_request)
     streaming_response = cast(StreamingResponse, response)

@@ -9,9 +9,12 @@ from .content import get_block_attr
 
 try:
     import tiktoken
+
     ENCODER = tiktoken.get_encoding("cl100k_base")
 except Exception as e:
-    logger.warning("Failed to load tiktoken encoding: {}. Token counts will be estimated.", e)
+    logger.warning(
+        "Failed to load tiktoken encoding: {}. Token counts will be estimated.", e
+    )
     ENCODER = None
 
 _DISALLOWED_SPECIAL: tuple[str, ...] = ()

@@ -105,6 +105,12 @@ class AppRuntime:
         self._provider_registry = ProviderRegistry()
         self.app.state.provider_registry = self._provider_registry
         try:
+            # Initialize database tables
+            import api.user_models  # noqa: F401 (ensure models are imported before create_all)
+            from api.db import Base, engine
+
+            Base.metadata.create_all(bind=engine)
+
             warn_if_process_auth_token(self.settings)
             await self._validate_configured_models_best_effort()
             self._provider_registry.start_model_list_refresh(self.settings)

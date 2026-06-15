@@ -3,9 +3,12 @@
 import secrets
 
 from fastapi import Depends, HTTPException, Request
+from fastapi.security import OAuth2PasswordBearer
 from loguru import logger
+from sqlalchemy.orm import Session
 from starlette.applications import Starlette
 
+from api.db import get_db
 from config.settings import Settings
 from config.settings import get_settings as _get_settings
 from core.anthropic import get_user_facing_error_message
@@ -131,10 +134,34 @@ def require_api_key(
 
     # Constant-time comparison to avoid leaking the configured token via
     # response-time differences on a per-byte mismatch (CWE-208).
-    if not secrets.compare_digest(
+    is_valid_api_key = secrets.compare_digest(
         token.encode("utf-8"), anthropic_auth_token.encode("utf-8")
-    ):
-        raise HTTPException(status_code=401, detail="Invalid API key")
+    )
+    if not is_valid_api_key:
+        from api.auth import decode_access_token
+
+        if decode_access_token(token) is None:
+            raise HTTPException(status_code=401, detail="Invalid API key or token")
+
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/signin")
+
+
+def get_current_user(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+):
+    from api.auth import decode_access_token
+    from api.user_models import User
+
+    payload = decode_access_token(token)
+    if not payload or "sub" not in payload:
+        raise HTTPException(
+            status_code=401, detail="Invalid authentication credentials"
+        )
+    user = db.query(User).filter(User.username == payload["sub"]).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
 
 
 def get_provider() -> BaseProvider:

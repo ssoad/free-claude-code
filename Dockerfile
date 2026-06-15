@@ -1,3 +1,12 @@
+# Build the frontend SPA
+FROM node:20-slim AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# Build the main python app
 FROM debian:bookworm-slim
 
 # Install system dependencies (curl and ca-certificates are required for downloading Python via uv)
@@ -30,6 +39,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Copy the rest of the application
 ADD . /app
+
+# Copy the built frontend
+COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
 # Install the project itself
 RUN --mount=type=cache,target=/root/.cache/uv \
