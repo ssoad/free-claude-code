@@ -44,7 +44,15 @@ def signup(user_data: UserCreate, db: Session = Depends(get_db)):
         )
 
     hashed_password = get_password_hash(user_data.password)
-    new_user = User(username=user_data.username, password_hash=hashed_password)
+    
+    # If this is the first user to register, make them an admin automatically
+    is_first_user = db.query(User).count() == 0
+    
+    new_user = User(
+        username=user_data.username, 
+        password_hash=hashed_password,
+        is_admin=is_first_user
+    )
 
     try:
         db.add(new_user)
