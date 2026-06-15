@@ -481,7 +481,7 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
       <div className="main-chat">
         <div className="chat-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontWeight: 600, fontSize: '1.1rem', background: 'linear-gradient(135deg, var(--text-main) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Free Claude Code</span>
+            <span style={{ fontWeight: 600, fontSize: '1.1rem', background: 'linear-gradient(135deg, var(--text-main) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>OmniChat</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Settings size={14} color="var(--text-muted)" />
@@ -511,9 +511,6 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
                   {msg.role === 'user' ? <UserIcon size={20} /> : <img src="/favicon.svg" alt="AI" width={20} height={20} />}
                 </div>
                 <div className="message-content">
-                  <div style={{ fontWeight: 600, marginBottom: '6px', fontSize: '0.85rem', color: msg.role === 'user' ? 'inherit' : 'var(--text-muted)', opacity: msg.role === 'user' ? 0.9 : 1 }}>
-                    {msg.role === 'user' ? 'You' : 'Assistant'}
-                  </div>
                   {renderContent(msg.content)}
                 </div>
               </div>
@@ -525,7 +522,11 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
               <div className="message-avatar">
                 <img src="/favicon.svg" alt="AI" width={20} height={20} />
               </div>
-              <div className="message-content" style={{ color: 'var(--text-muted)' }}>Thinking...</div>
+              <div className="message-content" style={{ display: 'flex', alignItems: 'center', gap: '4px', height: '24px' }}>
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+                <span className="typing-dot"></span>
+              </div>
             </div>
           )}
           <div ref={messagesEndRef} />
