@@ -363,8 +363,65 @@ button:disabled {
   margin-bottom: 0;
 }
 
+.message-content a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.2s ease;
+}
+
+.message-content a:hover {
+  color: #818cf8;
+}
+
+.message-content strong {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.message-content code {
+  background: var(--bg-card);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #e879f9;
+}
+
 .message-content pre {
-  margin: 1rem 0;
+  background: #0d1117;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 16px 0;
+  border: 1px solid var(--panel-border);
+}
+
+.message-content pre code {
+  background: transparent;
+  padding: 0;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+}
+
+.message-content blockquote {
+  border-left: 4px solid var(--panel-border);
+  padding-left: 16px;
+  margin: 16px 0;
+  color: var(--text-muted);
+}
+
+.message-content ul, .message-content ol {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.message-content li {
+  margin-bottom: 4px;
+}
+
+.message-content p:last-child {
+  margin-bottom: 0;
 }
 
 /* Floating Input Box */
