@@ -125,6 +125,11 @@ class AppRuntime:
                     conn.commit()
                 except Exception:
                     pass
+                try:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT 0"))
+                    conn.commit()
+                except Exception:
+                    pass
 
             warn_if_process_auth_token(self.settings)
             await self._validate_configured_models_best_effort()
