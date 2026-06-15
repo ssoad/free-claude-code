@@ -479,6 +479,25 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
       </div>
 
       <div className="main-chat">
+        <div className="chat-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontWeight: 600, fontSize: '1.1rem', background: 'linear-gradient(135deg, var(--text-main) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Free Claude Code</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Settings size={14} color="var(--text-muted)" />
+            <select 
+              value={selectedModel} 
+              onChange={e => setSelectedModel(e.target.value)}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500, outline: 'none', cursor: 'pointer' }}
+            >
+              {models.length === 0 && <option value="">Loading models...</option>}
+              {models.map(m => (
+                <option key={m.id} value={m.id}>{m.name || m.id}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <div className="messages-container">
           {messages.length === 0 ? (
             <div className="empty-state">
@@ -567,21 +586,8 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
               </button>
             </div>
           </div>
-          
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--panel-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', padding: '6px 16px', borderRadius: '24px', border: '1px solid var(--panel-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-              <Settings size={14} color="var(--text-muted)" />
-              <select 
-                value={selectedModel} 
-                onChange={e => setSelectedModel(e.target.value)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.85rem', fontWeight: 500, outline: 'none', cursor: 'pointer', appearance: 'none', paddingRight: '12px' }}
-              >
-                {models.length === 0 && <option value="">Loading models...</option>}
-                {models.map(m => (
-                  <option key={m.id} value={m.id}>{m.name || m.id}</option>
-                ))}
-              </select>
-            </div>
+          <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            AI can make mistakes. Please verify important information.
           </div>
         </div>
       </div>
