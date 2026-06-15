@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, LogOut, User as UserIcon, Paperclip, X, Check, Copy, FileText, ChevronDown, ChevronRight, Settings, Plus, MessageSquare, Sun, Moon, Trash2, Edit2 } from 'lucide-react';
+import { Send, LogOut, User as UserIcon, Paperclip, X, Check, Copy, FileText, ChevronDown, ChevronRight, Settings, Plus, MessageSquare, Sun, Moon, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';

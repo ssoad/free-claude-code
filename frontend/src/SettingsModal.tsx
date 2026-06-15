@@ -9,7 +9,7 @@ interface UserProfile {
 
 export default function SettingsModal({ onClose, onProfileUpdate }: { onClose: () => void, onProfileUpdate: (p: UserProfile) => void }) {
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences'>('profile');
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [, setProfile] = useState<UserProfile | null>(null);
   
   // Profile form
   const [displayName, setDisplayName] = useState('');
