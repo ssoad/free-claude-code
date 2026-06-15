@@ -106,10 +106,25 @@ class AppRuntime:
         self.app.state.provider_registry = self._provider_registry
         try:
             # Initialize database tables
+            from sqlalchemy import text
+
             import api.user_models  # noqa: F401 (ensure models are imported before create_all)
             from api.db import Base, engine
 
             Base.metadata.create_all(bind=engine)
+
+            # Simple migrations for existing databases
+            with engine.connect() as conn:
+                try:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN display_name VARCHAR"))
+                    conn.commit()
+                except Exception:
+                    pass
+                try:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN settings JSON"))
+                    conn.commit()
+                except Exception:
+                    pass
 
             warn_if_process_auth_token(self.settings)
             await self._validate_configured_models_best_effort()
