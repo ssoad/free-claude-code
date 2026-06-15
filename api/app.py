@@ -124,6 +124,7 @@ def create_app(*, lifespan_enabled: bool = True) -> FastAPI:
         )
 
     from .auth_routes import router as auth_router
+    from .chat_routes import router as chat_router
     from .openai_routes import router as openai_router
 
     # Register routes
@@ -131,6 +132,7 @@ def create_app(*, lifespan_enabled: bool = True) -> FastAPI:
     app.include_router(router)
     app.include_router(openai_router)
     app.include_router(auth_router)
+    app.include_router(chat_router)
 
     # Exception handlers
     @app.exception_handler(RequestValidationError)

@@ -478,8 +478,8 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
         </div>
       </div>
 
-      <div className="chat-main">
-        <div className="chat-feed">
+      <div className="main-chat">
+        <div className="messages-container">
           {messages.length === 0 ? (
             <div className="empty-state">
               <h2>What can I help you with?</h2>
@@ -487,11 +487,14 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
             </div>
           ) : (
             messages.map((msg, idx) => (
-              <div key={idx} className={`message-wrapper ${msg.role}`}>
+              <div key={idx} className={`message ${msg.role}`}>
                 <div className="message-avatar">
                   {msg.role === 'user' ? <UserIcon size={20} /> : <img src="/favicon.svg" alt="AI" width={20} height={20} />}
                 </div>
-                <div className={`message-bubble ${msg.role}`}>
+                <div className="message-content">
+                  <div style={{ fontWeight: 600, marginBottom: '6px', fontSize: '0.85rem', color: msg.role === 'user' ? 'inherit' : 'var(--text-muted)', opacity: msg.role === 'user' ? 0.9 : 1 }}>
+                    {msg.role === 'user' ? 'You' : 'Assistant'}
+                  </div>
                   {renderContent(msg.content)}
                 </div>
               </div>
@@ -499,79 +502,86 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
           )}
           
           {loading && (
-            <div className="message-wrapper assistant animate-fade-in">
+            <div className="message assistant animate-fade-in">
               <div className="message-avatar">
                 <img src="/favicon.svg" alt="AI" width={20} height={20} />
               </div>
-              <div className="message-bubble assistant">
-                <div className="typing-indicator">
-                  <span></span><span></span><span></span>
-                </div>
-              </div>
+              <div className="message-content" style={{ color: 'var(--text-muted)' }}>Thinking...</div>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="input-container">
-          {attachments.length > 0 && (
-            <div className="attachments-preview">
-              {attachments.map((att, idx) => (
-                <div key={idx} className="attachment-item">
-                  {att.previewUrl ? (
-                    <img src={att.previewUrl} alt="preview" />
-                  ) : (
-                    <div style={{ padding: '8px' }}><FileText size={24} color="var(--accent)" /></div>
-                  )}
-                  <button onClick={() => removeAttachment(idx)}><X size={14} /></button>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          <div className="input-box">
-            <div className="model-selector-wrapper">
-              <select className="model-selector" value={selectedModel} onChange={e => setSelectedModel(e.target.value)}>
-                {models.map(m => <option key={m.id} value={m.id}>{m.name || m.id}</option>)}
-              </select>
-            </div>
-
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              placeholder="Message Claude..."
-              rows={1}
-            />
+        <div className="input-area">
+          <div className="input-container">
+            {attachments.length > 0 && (
+              <div style={{ display: 'flex', gap: '12px', padding: '8px 4px 16px 4px', flexWrap: 'wrap', borderBottom: '1px solid var(--panel-border)', marginBottom: '8px' }}>
+                {attachments.map((att, i) => (
+                  <div key={i} style={{ position: 'relative', background: 'var(--bg-color)', border: '1px solid var(--panel-border)', borderRadius: '12px', padding: att.previewUrl ? '6px' : '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {att.previewUrl ? (
+                      <img src={att.previewUrl} alt="preview" style={{ height: '48px', width: '48px', objectFit: 'cover', borderRadius: '6px' }} />
+                    ) : (
+                      <FileText size={24} color="var(--accent)" />
+                    )}
+                    {!att.previewUrl && <span style={{ fontSize: '0.85rem', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{att.file.name}</span>}
+                    <button onClick={() => removeAttachment(i)} style={{ position: 'absolute', top: '-8px', right: '-8px', background: 'var(--danger)', color: 'white', border: 'none', borderRadius: '50%', padding: '4px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                      <X size={12} strokeWidth={3} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             
-            <div className="input-actions">
+            <div className="input-wrapper">
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                style={{ background: 'transparent', border: 'none', padding: '10px 4px', color: 'var(--text-muted)', cursor: 'pointer', transition: 'color 0.2s' }}
+                title="Attach Image or PDF"
+              >
+                <Paperclip size={22} />
+              </button>
               <input 
                 type="file" 
                 ref={fileInputRef} 
                 style={{ display: 'none' }} 
                 multiple 
-                accept="image/*,application/pdf"
-                onChange={handleFileSelect}
+                accept="image/*,application/pdf" 
+                onChange={handleFileSelect} 
               />
-              <button className="attach-btn" onClick={() => fileInputRef.current?.click()}>
-                <Paperclip size={20} />
-              </button>
+              
+              <textarea 
+                className="chat-input"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                placeholder="Message Assistant..."
+                rows={Math.min(5, input.split('\n').length || 1)}
+              />
+              
               <button 
-                className={`send-btn ${input.trim() || attachments.length ? 'active' : ''}`}
+                className="send-button"
                 onClick={handleSend}
-                disabled={(!input.trim() && !attachments.length) || loading}
+                disabled={(!input.trim() && attachments.length === 0) || loading}
               >
                 <Send size={18} />
               </button>
             </div>
           </div>
-          <div className="input-footer">
-            AI can make mistakes. Please verify important information.
+          
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--panel-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', padding: '6px 16px', borderRadius: '24px', border: '1px solid var(--panel-border)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+              <Settings size={14} color="var(--text-muted)" />
+              <select 
+                value={selectedModel} 
+                onChange={e => setSelectedModel(e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', fontSize: '0.85rem', fontWeight: 500, outline: 'none', cursor: 'pointer', appearance: 'none', paddingRight: '12px' }}
+              >
+                {models.length === 0 && <option value="">Loading models...</option>}
+                {models.map(m => (
+                  <option key={m.id} value={m.id}>{m.name || m.id}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>

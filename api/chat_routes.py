@@ -6,8 +6,8 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from api.dependencies import get_current_user
 from api.db import get_db
+from api.dependencies import get_current_user
 from api.user_models import ChatMessage, ChatSession, User
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
