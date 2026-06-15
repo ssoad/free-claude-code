@@ -23,6 +23,7 @@ class User(Base):
     settings: Mapped[str | None] = mapped_column(
         Text, nullable=True
     )  # JSON string for settings
+    is_admin: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC)
     )

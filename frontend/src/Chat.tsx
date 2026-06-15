@@ -481,7 +481,7 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
       <div className="main-chat">
         <div className="chat-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontWeight: 600, fontSize: '1.1rem', background: 'linear-gradient(135deg, var(--text-main) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>OmniChat</span>
+            <span style={{ fontWeight: 600, fontSize: '1.1rem', background: 'linear-gradient(135deg, var(--text-main) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Aura</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Settings size={14} color="var(--text-muted)" />

@@ -79,6 +79,7 @@ class UserProfile(BaseModel):
     username: str
     display_name: str | None = None
     settings: dict | None = None
+    is_admin: bool = False
 
 
 class ProfileUpdate(BaseModel):
@@ -97,7 +98,30 @@ def get_me(current_user: User = Depends(get_current_user)):
         username=current_user.username,
         display_name=current_user.display_name,
         settings=current_user.get_settings(),
+        is_admin=current_user.is_admin,
     )
+
+@router.get("/admin/users")
+def get_all_users(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Admin endpoint to get all users."""
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "display_name": u.display_name,
+            "created_at": u.created_at,
+            "is_admin": u.is_admin
+        } for u in users
+    ]
 
 
 @router.put("/me/profile", response_model=UserProfile)

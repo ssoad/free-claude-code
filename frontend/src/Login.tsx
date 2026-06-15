@@ -36,10 +36,10 @@ export default function Login({ setIsAuthenticated }: { setIsAuthenticated: (val
 
   return (
     <div className="auth-container animate-fade-in">
-      <div className="glass-panel auth-card">
+      <div className="auth-card">
         <div className="auth-header">
-          <h1 className="auth-title">Welcome Back</h1>
-          <p className="auth-subtitle">Sign in to continue to LocalMind</p>
+          <h1 style={{ background: 'linear-gradient(135deg, var(--text-main) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: '2rem', marginBottom: '8px' }}>Welcome to Aura</h1>
+          <p>Sign in to your account</p>
         </div>
         
         {error && <div className="auth-error">{error}</div>}
