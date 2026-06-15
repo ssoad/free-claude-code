@@ -182,7 +182,7 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
           model: selectedModel,
           messages: apiMessages,
           max_tokens: 4096,
-          stream: false
+          stream: true
         })
       });
 
@@ -193,9 +193,39 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
         throw new Error('API request failed: ' + res.status);
       }
 
-      const data = await res.json();
-      const assistantMsg = data.content?.[0]?.text || 'No response';
-      setMessages(prev => [...prev, { role: 'assistant', content: assistantMsg }]);
+      setLoading(false);
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let currentMessage = '';
+      
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.slice(6);
+              if (dataStr.trim() === '[DONE]') continue;
+              try {
+                const data = JSON.parse(dataStr);
+                if (data.type === 'content_block_delta' && data.delta?.text) {
+                  currentMessage += data.delta.text;
+                  setMessages(prev => {
+                    const newMessages = [...prev];
+                    newMessages[newMessages.length - 1].content = currentMessage;
+                    return newMessages;
+                  });
+                }
+              } catch(e) {}
+            }
+          }
+        }
+      }
 
     } catch (err) {
       console.error(err);
