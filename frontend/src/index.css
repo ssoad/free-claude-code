@@ -2,42 +2,42 @@
 
 /* Default Dark Mode */
 :root {
-  --bg-color: #0f1115;
-  --bg-card: rgba(255, 255, 255, 0.03);
-  --panel-bg: rgba(255, 255, 255, 0.03);
-  --panel-border: rgba(255, 255, 255, 0.08);
-  --text-main: #f3f4f6;
-  --text-muted: #9ca3af;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
+  --bg-color: #1a1a1a;
+  --bg-card: #2d2d2d;
+  --panel-bg: #2d2d2d;
+  --panel-border: #3d3d3d;
+  --text-main: #ededed;
+  --text-muted: #a1a1aa;
+  --accent: #d97757;
+  --accent-hover: #c2694d;
   --danger: #ef4444;
-  --input-bg: rgba(0, 0, 0, 0.2);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --glass-blur: blur(12px);
-  --message-user-bg: #4f46e5;
-  --message-user-text: #ffffff;
-  --sidebar-bg: #14161b;
-  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+  --input-bg: #2d2d2d;
+  --glass-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --message-user-bg: #2d2d2d;
+  --message-user-text: #ededed;
+  --sidebar-bg: #141414;
+  --scrollbar-thumb: #555555;
+  --modal-overlay: rgba(0, 0, 0, 0.6);
 }
 
 /* Light Mode Overrides */
 .light-mode {
-  --bg-color: #f9fafb;
+  --bg-color: #ffffff;
   --bg-card: #ffffff;
-  --panel-bg: rgba(255, 255, 255, 0.7);
-  --panel-border: rgba(0, 0, 0, 0.08);
-  --text-main: #111827;
+  --panel-bg: #ffffff;
+  --panel-border: #e5e7eb;
+  --text-main: #0f0f0f;
   --text-muted: #6b7280;
-  --accent: #4f46e5;
-  --accent-hover: #4338ca;
+  --accent: #d97757;
+  --accent-hover: #c2694d;
   --danger: #ef4444;
-  --input-bg: #ffffff;
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-  --glass-blur: blur(16px);
-  --message-user-bg: #4f46e5;
-  --message-user-text: #ffffff;
-  --sidebar-bg: #f3f4f6;
-  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  --input-bg: #f4f4f5;
+  --glass-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --message-user-bg: #f4f4f5;
+  --message-user-text: #0f0f0f;
+  --sidebar-bg: #f9fafb;
+  --scrollbar-thumb: #d1d5db;
+  --modal-overlay: rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -50,10 +50,6 @@ body {
   font-family: 'Inter', -apple-system, sans-serif;
   background-color: var(--bg-color);
   color: var(--text-main);
-  background-image: 
-    radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.05) 0%, transparent 50%);
-  background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -78,8 +74,6 @@ body {
 /* Glassmorphism utilities */
 .glass-panel {
   background: var(--panel-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--panel-border);
   box-shadow: var(--glass-shadow);
   border-radius: 16px;

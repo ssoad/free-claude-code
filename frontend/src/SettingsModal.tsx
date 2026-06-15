@@ -81,8 +81,8 @@ export default function SettingsModal({ onClose, onProfileUpdate }: { onClose: (
   };
 
   return (
-    <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-      <div className="modal-content" style={{ background: 'var(--bg-panel)', width: '500px', maxWidth: '90vw', borderRadius: '16px', border: '1px solid var(--panel-border)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+    <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--modal-overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+      <div className="modal-content" style={{ background: 'var(--bg-color)', width: '500px', maxWidth: '90vw', borderRadius: '16px', border: '1px solid var(--panel-border)', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
         
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--panel-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>Settings</h2>
@@ -94,13 +94,13 @@ export default function SettingsModal({ onClose, onProfileUpdate }: { onClose: (
         <div style={{ display: 'flex', borderBottom: '1px solid var(--panel-border)' }}>
           <button 
             onClick={() => setActiveTab('profile')}
-            style={{ flex: 1, padding: '12px', background: 'none', border: 'none', borderBottom: activeTab === 'profile' ? '2px solid var(--accent)' : '2px solid transparent', color: activeTab === 'profile' ? 'var(--text-color)' : 'var(--text-muted)', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            style={{ flex: 1, padding: '12px', background: 'none', border: 'none', borderBottom: activeTab === 'profile' ? '2px solid var(--accent)' : '2px solid transparent', color: activeTab === 'profile' ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
             <User size={16} /> Profile
           </button>
           <button 
             onClick={() => setActiveTab('preferences')}
-            style={{ flex: 1, padding: '12px', background: 'none', border: 'none', borderBottom: activeTab === 'preferences' ? '2px solid var(--accent)' : '2px solid transparent', color: activeTab === 'preferences' ? 'var(--text-color)' : 'var(--text-muted)', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+            style={{ flex: 1, padding: '12px', background: 'none', border: 'none', borderBottom: activeTab === 'preferences' ? '2px solid var(--accent)' : '2px solid transparent', color: activeTab === 'preferences' ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
             <Sliders size={16} /> Preferences
           </button>
