@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Send, LogOut, User as UserIcon, Paperclip, X, Check, Copy, FileText, ChevronDown, ChevronRight, Settings, Plus, MessageSquare, Sun, Moon, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -49,6 +50,8 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   const [displayName, setDisplayName] = useState<string>(localStorage.getItem('username') || 'User');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -78,6 +81,7 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
     if (res.ok) {
       const data = await res.json();
       setDisplayName(data.display_name || data.username);
+      if (data.is_admin) setIsAdmin(true);
       if (data.settings?.defaultModel) setSelectedModel(data.settings.defaultModel);
       if (data.settings?.systemPrompt) setSystemPrompt(data.settings.systemPrompt);
     }
@@ -425,6 +429,17 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
             <span>New chat</span>
             <Plus size={18} />
           </button>
+          
+          {isAdmin && (
+            <button 
+              className="new-chat-btn" 
+              style={{ marginTop: '12px', borderStyle: 'dashed', borderColor: 'var(--accent)', color: 'var(--accent)' }} 
+              onClick={() => navigate('/admin')}
+            >
+              <span>Admin Dashboard</span>
+              <Settings size={18} />
+            </button>
+          )}
         </div>
         
         <div className="sidebar-history">
