@@ -224,7 +224,7 @@ def create_app(*, lifespan_enabled: bool = True) -> FastAPI:
             if (
                 full_path.startswith("api/")
                 or full_path.startswith("v1/")
-                or full_path.startswith("admin/")
+                or full_path.startswith("admin/api/")
             ):
                 return JSONResponse({"detail": "Not Found"}, status_code=404)
 

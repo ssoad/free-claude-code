@@ -62,12 +62,31 @@ def _origin_is_local(origin: str | None) -> bool:
 
 
 def require_loopback_admin(request: Request) -> None:
-    """Allow admin access only from the local machine, or via API key when remote access is enabled."""
+    """Allow admin access via JWT Token, local machine, or via API key when remote access is enabled."""
     from config.settings import get_settings as get_cached_settings_for_admin
-
     from .dependencies import require_api_key
+    from api.auth import decode_access_token
+    from api.db import SessionLocal
+    from api.user_models import User
+    
+    # Try JWT Authentication First (from React Admin UI)
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        try:
+            payload = decode_access_token(token)
+            if payload and "sub" in payload:
+                db = SessionLocal()
+                try:
+                    user = db.query(User).filter(User.username == payload["sub"]).first()
+                    if user and user.is_admin:
+                        return # User is an admin, allow access
+                finally:
+                    db.close()
+        except Exception:
+            pass # Fallback to existing checks
 
-    settings = get_cached_settings_for_admin()
+
 
     if settings.admin_remote_access:
         # Remote admin enabled: authenticate via API key instead of loopback check
@@ -92,25 +111,6 @@ def require_loopback_admin(request: Request) -> None:
         raise HTTPException(status_code=403, detail="Admin UI is local-only")
 
 
-def _asset_response(filename: str) -> FileResponse:
-    path = STATIC_DIR / filename
-    if not path.is_file():
-        raise HTTPException(status_code=404, detail="Admin asset not found")
-    return FileResponse(path)
-
-
-@router.get("/admin", include_in_schema=False)
-async def admin_page(request: Request):
-    require_loopback_admin(request)
-    return _asset_response("index.html")
-
-
-@router.get("/admin/assets/{filename}", include_in_schema=False)
-async def admin_asset(filename: str, request: Request):
-    require_loopback_admin(request)
-    if filename not in {"admin.css", "admin.js"}:
-        raise HTTPException(status_code=404, detail="Admin asset not found")
-    return _asset_response(filename)
 
 
 @router.get("/admin/api/config")
