@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send, LogOut, User as UserIcon, Paperclip, X, Check, Copy, FileText, ChevronDown, ChevronRight, Settings, Plus, MessageSquare, Sun, Moon, Trash2 } from 'lucide-react';
+import { Send, LogOut, User as UserIcon, Paperclip, X, Check, Copy, FileText, ChevronDown, ChevronRight, Settings, Plus, MessageSquare, Sun, Moon, Trash2, RefreshCcw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -39,6 +39,7 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [systemPrompt, setSystemPrompt] = useState<string>('');
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
   
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
@@ -88,6 +89,7 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
   };
 
   const fetchModels = async () => {
+    setIsFetchingModels(true);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch('/v1/models', { headers: { 'Authorization': `Bearer ${token}` } });
@@ -100,6 +102,8 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
       }
     } catch (e) {
       console.error('Failed to fetch models', e);
+    } finally {
+      setIsFetchingModels(false);
     }
   };
 
@@ -503,13 +507,21 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
             <select 
               value={selectedModel} 
               onChange={e => setSelectedModel(e.target.value)}
-              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500, outline: 'none', cursor: 'pointer' }}
+              style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500, outline: 'none', cursor: 'pointer', maxWidth: '300px' }}
             >
               {models.length === 0 && <option value="">Loading models...</option>}
               {models.map(m => (
                 <option key={m.id} value={m.id}>{m.name || m.id}</option>
               ))}
             </select>
+            <button 
+              onClick={fetchModels} 
+              disabled={isFetchingModels}
+              style={{ background: 'none', border: 'none', cursor: isFetchingModels ? 'not-allowed' : 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: '4px', opacity: isFetchingModels ? 0.5 : 1 }}
+              title="Refresh Models"
+            >
+              <RefreshCcw size={14} className={isFetchingModels ? "spin" : ""} />
+            </button>
           </div>
         </div>
 
