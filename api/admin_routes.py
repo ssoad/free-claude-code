@@ -88,6 +88,8 @@ def require_loopback_admin(request: Request) -> None:
 
 
 
+    settings = get_cached_settings_for_admin()
+
     if settings.admin_remote_access:
         # Remote admin enabled: authenticate via API key instead of loopback check
         try:
