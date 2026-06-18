@@ -451,13 +451,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def check_admin_remote_access_requires_auth(self) -> Settings:
-        """Require ANTHROPIC_AUTH_TOKEN when admin remote access is enabled."""
-        if self.admin_remote_access and not self.anthropic_auth_token.strip():
-            raise ValueError(
-                "ANTHROPIC_AUTH_TOKEN must be set when FCC_ADMIN_REMOTE_ACCESS "
-                "is enabled. Remote admin access without authentication is not "
-                "allowed."
-            )
+        """Previously required ANTHROPIC_AUTH_TOKEN when admin remote access is enabled. Now relies on JWT."""
         return self
 
     def uses_process_anthropic_auth_token(self) -> bool:
