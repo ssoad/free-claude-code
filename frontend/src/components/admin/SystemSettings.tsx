@@ -170,7 +170,7 @@ export default function SystemSettings({ section, fields, onChange, title, descr
   };
 
   return (
-    <Box sx={{ maxWidth: 800 }}>
+    <Box sx={{ maxWidth: 1200, width: '100%', mx: 'auto' }}>
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
         {title}
       </Typography>

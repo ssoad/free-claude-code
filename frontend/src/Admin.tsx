@@ -255,7 +255,7 @@ export default function Admin() {
             </Toolbar>
           </AppBar>
           
-          <Box sx={{ p: 6 }}>
+          <Box sx={{ p: { xs: 2, md: 4, lg: 6 } }}>
             {renderContent()}
           </Box>
         </Box>

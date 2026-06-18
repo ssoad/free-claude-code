@@ -54,7 +54,7 @@ export default function UserManager() {
   if (error) return <Typography color="error">{error}</Typography>;
 
   return (
-    <Box>
+    <Box sx={{ maxWidth: 1200, width: '100%', mx: 'auto' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>Registered Users</Typography>
       </Box>
