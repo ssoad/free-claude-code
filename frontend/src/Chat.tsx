@@ -449,8 +449,7 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
           
           {isAdmin && (
             <button 
-              className="new-chat-btn" 
-              style={{ marginTop: '12px', borderStyle: 'dashed', borderColor: 'var(--accent)', color: 'var(--accent)' }} 
+              className="admin-btn" 
               onClick={() => navigate('/admin')}
             >
               <span>Admin Dashboard</span>
@@ -467,16 +466,14 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
                 key={session.id} 
                 className={`history-item ${activeSessionId === session.id ? 'active' : ''}`} 
                 onClick={() => loadSession(session.id)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', cursor: 'pointer' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                  <MessageSquare size={14} color="var(--text-muted)" />
-                  <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{session.title}</span>
+                <div className="history-item-content">
+                  <MessageSquare size={14} color={activeSessionId === session.id ? "var(--accent)" : "var(--text-muted)"} />
+                  <span className="history-item-text">{session.title}</span>
                 </div>
                 <button 
                   onClick={(e) => deleteSession(session.id, e)} 
                   className="delete-session-btn" 
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', opacity: 0.6 }}
                 >
                   <Trash2 size={14} />
                 </button>
