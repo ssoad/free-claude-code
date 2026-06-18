@@ -585,7 +585,7 @@ class TestSettingsOptionalStr:
 
 
 class TestPerModelMapping:
-    """Test per-model fields and resolve_model()."""
+    """Test per-model fields and resolve_models()."""
 
     def test_model_fields_default_none(self):
         """Per-model fields default to None."""
@@ -613,7 +613,7 @@ class TestPerModelMapping:
         s = Settings()
         assert getattr(s, env_var.lower()) is None
         assert (
-            s.resolve_model(f"claude-{env_var.removeprefix('MODEL_').lower()}-4")
+            s.resolve_models(f"claude-{env_var.removeprefix('MODEL_').lower()}-4")[0]
             == s.model
         )
 
@@ -700,13 +700,11 @@ class TestPerModelMapping:
         s = Settings()
         s.model_opus = "open_router/deepseek/deepseek-r1"
         assert (
-            s.resolve_model("claude-opus-4-20250514")
-            == "open_router/deepseek/deepseek-r1"
+            s.resolve_models("claude-opus-4-20250514")[0] == "open_router/deepseek/deepseek-r1"
         )
-        assert s.resolve_model("claude-3-opus") == "open_router/deepseek/deepseek-r1"
+        assert s.resolve_models("claude-3-opus")[0] == "open_router/deepseek/deepseek-r1"
         assert (
-            s.resolve_model("claude-3-opus-20240229")
-            == "open_router/deepseek/deepseek-r1"
+            s.resolve_models("claude-3-opus-20240229")[0] == "open_router/deepseek/deepseek-r1"
         )
 
     def test_resolve_model_sonnet_override(self):
@@ -716,12 +714,10 @@ class TestPerModelMapping:
         s = Settings()
         s.model_sonnet = "nvidia_nim/meta/llama-3.3-70b-instruct"
         assert (
-            s.resolve_model("claude-sonnet-4-20250514")
-            == "nvidia_nim/meta/llama-3.3-70b-instruct"
+            s.resolve_models("claude-sonnet-4-20250514")[0] == "nvidia_nim/meta/llama-3.3-70b-instruct"
         )
         assert (
-            s.resolve_model("claude-3-5-sonnet-20241022")
-            == "nvidia_nim/meta/llama-3.3-70b-instruct"
+            s.resolve_models("claude-3-5-sonnet-20241022")[0] == "nvidia_nim/meta/llama-3.3-70b-instruct"
         )
 
     def test_resolve_model_haiku_override(self):
@@ -730,9 +726,9 @@ class TestPerModelMapping:
 
         s = Settings()
         s.model_haiku = "lmstudio/qwen2.5-7b"
-        assert s.resolve_model("claude-3-haiku-20240307") == "lmstudio/qwen2.5-7b"
-        assert s.resolve_model("claude-3-5-haiku-20241022") == "lmstudio/qwen2.5-7b"
-        assert s.resolve_model("claude-haiku-4-20250514") == "lmstudio/qwen2.5-7b"
+        assert s.resolve_models("claude-3-haiku-20240307")[0] == "lmstudio/qwen2.5-7b"
+        assert s.resolve_models("claude-3-5-haiku-20241022")[0] == "lmstudio/qwen2.5-7b"
+        assert s.resolve_models("claude-haiku-4-20250514")[0] == "lmstudio/qwen2.5-7b"
 
     def test_resolve_model_fallback_when_override_not_set(self):
         """resolve_model falls back to MODEL when model override is None."""
@@ -741,11 +737,11 @@ class TestPerModelMapping:
         s = Settings()
         s.model = "nvidia_nim/fallback-model"
         # No model overrides set
-        assert s.resolve_model("claude-opus-4-20250514") == "nvidia_nim/fallback-model"
+        assert s.resolve_models("claude-opus-4-20250514")[0] == "nvidia_nim/fallback-model"
         assert (
-            s.resolve_model("claude-sonnet-4-20250514") == "nvidia_nim/fallback-model"
+            s.resolve_models("claude-sonnet-4-20250514")[0] == "nvidia_nim/fallback-model"
         )
-        assert s.resolve_model("claude-3-haiku-20240307") == "nvidia_nim/fallback-model"
+        assert s.resolve_models("claude-3-haiku-20240307")[0] == "nvidia_nim/fallback-model"
 
     def test_resolve_model_unknown_model_falls_back(self):
         """resolve_model falls back to MODEL for unrecognized model names."""
@@ -754,8 +750,8 @@ class TestPerModelMapping:
         s = Settings()
         s.model = "nvidia_nim/fallback-model"
         s.model_opus = "open_router/opus-model"
-        assert s.resolve_model("claude-2.1") == "nvidia_nim/fallback-model"
-        assert s.resolve_model("some-unknown-model") == "nvidia_nim/fallback-model"
+        assert s.resolve_models("claude-2.1")[0] == "nvidia_nim/fallback-model"
+        assert s.resolve_models("some-unknown-model")[0] == "nvidia_nim/fallback-model"
 
     def test_resolve_model_case_insensitive(self):
         """Model classification is case-insensitive."""
@@ -763,7 +759,7 @@ class TestPerModelMapping:
 
         s = Settings()
         s.model_opus = "open_router/opus-model"
-        assert s.resolve_model("Claude-OPUS-4") == "open_router/opus-model"
+        assert s.resolve_models("Claude-OPUS-4")[0] == "open_router/opus-model"
 
     def test_parse_provider_type(self):
         """parse_provider_type extracts provider from model string."""

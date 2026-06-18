@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Sparkles } from 'lucide-react';
+import { useBrand } from './BrandContext';
 
 export default function Register({ setIsAuthenticated }: { setIsAuthenticated: (val: boolean) => void }) {
+  const { brandName } = useBrand();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -43,8 +46,9 @@ export default function Register({ setIsAuthenticated }: { setIsAuthenticated: (
     <div className="auth-container animate-fade-in">
       <div className="auth-card">
         <div className="auth-header">
-          <h1 style={{ background: 'linear-gradient(135deg, var(--text-main) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: '2rem', marginBottom: '8px' }}>Join Aura</h1>
-          <p>Create an account to get started</p>
+          <div className="auth-logo"><Sparkles size={32} /></div>
+          <h1 style={{ background: 'linear-gradient(135deg, var(--text-main) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: '2rem', marginBottom: '8px' }}>Join {brandName}</h1>
+          <p style={{ color: 'var(--text-muted)' }}>Create an account to get started</p>
         </div>
         
         {error && <div className="auth-error">{error}</div>}

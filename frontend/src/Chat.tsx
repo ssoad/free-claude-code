@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { useBrand } from './BrandContext';
 import { atomDark, prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import SettingsModal from './SettingsModal';
 
@@ -32,6 +33,7 @@ interface ChatSession {
 }
 
 export default function Chat({ onLogout }: { onLogout: () => void }) {
+  const { brandName } = useBrand();
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
   });
@@ -510,7 +512,7 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
       <div className="main-chat">
         <div className="chat-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontWeight: 600, fontSize: '1.1rem', background: 'linear-gradient(135deg, var(--text-main) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Aura</span>
+            <span style={{ fontWeight: 600, fontSize: '1.1rem', background: 'linear-gradient(135deg, var(--text-main) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{brandName}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Settings size={14} color="var(--text-muted)" />

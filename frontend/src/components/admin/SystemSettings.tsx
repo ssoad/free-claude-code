@@ -1,5 +1,5 @@
-import { Box, Typography, TextField, Switch, FormControlLabel, Select, MenuItem, InputLabel, FormControl, Card, CardContent, Divider, Tooltip, Button, CircularProgress, Chip } from '@mui/material';
-import { HelpOutlined, Refresh } from '@mui/icons-material';
+import { Box, Typography, TextField, Switch, Select, MenuItem, InputLabel, FormControl, Card, CardContent, Divider, Button, CircularProgress, Chip, IconButton, Autocomplete } from '@mui/material';
+import { Refresh, DragIndicator, DeleteOutlined, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
 
 export interface ConfigField {
@@ -20,6 +20,83 @@ interface SystemSettingsProps {
   title: string;
   description: string;
 }
+
+// Fallback Chain Builder component for MODEL_* routing keys
+const FallbackModelBuilder = ({ value, onChange, cachedModels }: { value: string, onChange: (val: string) => void, cachedModels: Record<string, string[]> }) => {
+  const models = (value || '').split(',').map(s => s.trim()).filter(Boolean);
+  const [newModel, setNewModel] = useState('');
+
+  // Flatten all known models from all providers
+  const allKnownModels = Object.entries(cachedModels).flatMap(([provider, providerModels]) => 
+    providerModels.map(m => `${provider}/${m}`)
+  );
+
+  const handleAdd = () => {
+    if (newModel && !models.includes(newModel)) {
+      onChange([...models, newModel].join(','));
+      setNewModel('');
+    }
+  };
+
+  const handleRemove = (index: number) => {
+    const next = [...models];
+    next.splice(index, 1);
+    onChange(next.join(','));
+  };
+
+  const handleMove = (index: number, dir: -1 | 1) => {
+    if (index + dir < 0 || index + dir >= models.length) return;
+    const next = [...models];
+    const temp = next[index];
+    next[index] = next[index + dir];
+    next[index + dir] = temp;
+    onChange(next.join(','));
+  };
+
+  return (
+    <Box sx={{ mt: 2, mb: 4, p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'background.default' }}>
+      <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: 'text.secondary' }}>
+        Fallback Chain Sequence
+      </Typography>
+      
+      {models.length === 0 ? (
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic', mb: 2 }}>
+          No models configured. Will inherit from default MODEL.
+        </Typography>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 3 }}>
+          {models.map((mod, idx) => (
+            <Box key={`${mod}-${idx}`} sx={{ display: 'flex', alignItems: 'center', p: 1.5, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1, gap: 1 }}>
+              <DragIndicator sx={{ color: 'text.disabled', fontSize: '1.2rem' }} />
+              <Typography variant="body2" sx={{ flexGrow: 1, fontWeight: 500, fontFamily: 'monospace' }}>
+                {idx === 0 ? <Chip label="Primary" size="small" color="primary" sx={{ mr: 1, height: 20, fontSize: '0.65rem' }} /> : 
+                 <Chip label={`Fallback ${idx}`} size="small" variant="outlined" sx={{ mr: 1, height: 20, fontSize: '0.65rem' }} />}
+                {mod}
+              </Typography>
+              <IconButton size="small" onClick={() => handleMove(idx, -1)} disabled={idx === 0}><ArrowUpward fontSize="small" /></IconButton>
+              <IconButton size="small" onClick={() => handleMove(idx, 1)} disabled={idx === models.length - 1}><ArrowDownward fontSize="small" /></IconButton>
+              <IconButton size="small" color="error" onClick={() => handleRemove(idx)}><DeleteOutlined fontSize="small" /></IconButton>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <Autocomplete
+          freeSolo
+          size="small"
+          options={allKnownModels}
+          sx={{ flexGrow: 1 }}
+          value={newModel}
+          onChange={(_, val) => setNewModel(val || '')}
+          onInputChange={(_, val) => setNewModel(val)}
+          renderInput={(params) => <TextField {...params} label="Add model (provider/model_name)" variant="outlined" />}
+        />
+        <Button variant="contained" onClick={handleAdd} disabled={!newModel}>Add</Button>
+      </Box>
+    </Box>
+  );
+};
 
 export default function SystemSettings({ section, fields, onChange, title, description }: SystemSettingsProps) {
   const [providerStatuses, setProviderStatuses] = useState<any[]>([]);
@@ -78,22 +155,31 @@ export default function SystemSettings({ section, fields, onChange, title, descr
     switch (field.type) {
       case 'boolean':
         return (
-          <Box key={field.key} sx={{ mb: 3, display: 'flex', alignItems: 'center' }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={Boolean(field.value)}
-                  onChange={(e) => onChange(field.key, e.target.checked)}
-                  color="primary"
-                />
-              }
-              label={<Typography sx={{ fontWeight: 500 }}>{field.label}</Typography>}
+          <Box key={field.key} sx={{ 
+            mb: 2, 
+            p: 2, 
+            display: 'flex', 
+            alignItems: 'center',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 2,
+            bgcolor: 'background.paper',
+            transition: 'border-color 0.2s',
+            '&:hover': { borderColor: 'primary.main', opacity: 0.9 }
+          }}>
+            <Box sx={{ flexGrow: 1 }}>
+              <Typography sx={{ fontWeight: 600, color: 'text.primary', mb: 0.5 }}>{field.label}</Typography>
+              {field.description && (
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {field.description}
+                </Typography>
+              )}
+            </Box>
+            <Switch
+              checked={Boolean(field.value)}
+              onChange={(e) => onChange(field.key, e.target.checked)}
+              color="primary"
             />
-            {field.description && (
-              <Tooltip title={field.description} arrow>
-                <HelpOutlined sx={{ ml: 1, color: 'text.secondary', fontSize: '1.2rem', cursor: 'help' }} />
-              </Tooltip>
-            )}
           </Box>
         );
 
@@ -122,6 +208,64 @@ export default function SystemSettings({ section, fields, onChange, title, descr
 
       case 'password':
       case 'text':
+        if (['MODEL', 'MODEL_OPUS', 'MODEL_SONNET', 'MODEL_HAIKU'].includes(field.key)) {
+          return (
+            <Box key={field.key} sx={{ mb: 5 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary', mb: 0.5 }}>{field.label}</Typography>
+              {field.description && <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>{field.description}</Typography>}
+              <FallbackModelBuilder 
+                value={field.value || ''} 
+                onChange={(val) => onChange(field.key, val)} 
+                cachedModels={cachedModels} 
+              />
+            </Box>
+          );
+        }
+
+        // Find if this field matches a provider's credential_env
+        const providerMatchText = providerStatuses.find(p => p.credential_env === field.key);
+        const modelsText = providerMatchText ? cachedModels[providerMatchText.provider_id] : null;
+        
+        return (
+          <Box key={field.key} sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+              <TextField
+                fullWidth
+                label={field.label}
+                type={field.type === 'password' ? 'password' : 'text'}
+                value={field.value || ''}
+                onChange={(e) => onChange(field.key, e.target.value)}
+                helperText={field.description}
+                variant="outlined"
+                sx={{ background: 'background.paper', flexGrow: 1 }}
+              />
+              {providerMatchText && (
+                <Button 
+                  variant="outlined" 
+                  color="primary"
+                  onClick={() => testProvider(providerMatchText.provider_id)}
+                  disabled={isTesting[providerMatchText.provider_id]}
+                  startIcon={isTesting[providerMatchText.provider_id] ? <CircularProgress size={16} /> : <Refresh />}
+                  sx={{ height: 56, whiteSpace: 'nowrap' }}
+                >
+                  Refresh Models
+                </Button>
+              )}
+            </Box>
+            
+            {providerMatchText && modelsText && modelsText.length > 0 && (
+              <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 0.5, p: 1.5, bgcolor: 'rgba(0,0,0,0.02)', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="caption" sx={{ width: '100%', mb: 0.5, color: 'text.secondary', fontWeight: 600 }}>
+                  {modelsText.length} Discovered Models:
+                </Typography>
+                {modelsText.map((m: string) => (
+                  <Chip key={m} label={m} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} />
+                ))}
+              </Box>
+            )}
+          </Box>
+        );
+
       default:
         // Find if this field matches a provider's credential_env
         const providerMatch = providerStatuses.find(p => p.credential_env === field.key);
@@ -170,7 +314,7 @@ export default function SystemSettings({ section, fields, onChange, title, descr
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, width: '100%', mx: 'auto' }}>
+    <Box sx={{ maxWidth: 'xl', width: '100%', mx: 'auto' }}>
       <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: 'text.primary' }}>
         {title}
       </Typography>

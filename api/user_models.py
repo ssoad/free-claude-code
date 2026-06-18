@@ -31,6 +31,12 @@ class User(Base):
     sessions: Mapped[list[ChatSession]] = relationship(
         "ChatSession", back_populates="user", cascade="all, delete-orphan"
     )
+    usages: Mapped[list[TokenUsage]] = relationship(
+        "TokenUsage", back_populates="user", cascade="all, delete-orphan"
+    )
+    api_keys: Mapped[list["ApiKey"]] = relationship(
+        "ApiKey", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def get_settings(self) -> dict:
         if not self.settings:
@@ -87,3 +93,44 @@ class ChatMessage(Base):
     session: Mapped[ChatSession] = relationship(
         "ChatSession", back_populates="messages"
     )
+
+
+class TokenUsage(Base):
+    """Token usage tracking per user."""
+
+    __tablename__ = "token_usage"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    provider_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    model_name: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    input_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC), index=True
+    )
+
+    user: Mapped[User] = relationship("User", back_populates="usages")
+
+
+class ApiKey(Base):
+    """API Keys for user authentication."""
+
+    __tablename__ = "api_keys"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String, nullable=False, default="Secret Key")
+    key_hash: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    prefix: Mapped[str] = mapped_column(String, nullable=False)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC)
+    )
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user: Mapped[User] = relationship("User", back_populates="api_keys")

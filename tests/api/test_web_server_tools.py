@@ -43,9 +43,9 @@ class FixedProviderModelRouter(ModelRouter):
         super().__init__(settings)
         self._fixed_provider_id = provider_id
 
-    def resolve_messages_request(
+    def resolve_messages_request_all(
         self, request: MessagesRequest
-    ) -> RoutedMessagesRequest:
+    ) -> list[RoutedMessagesRequest]:
         resolved = ResolvedModel(
             original_model=request.model,
             provider_id=self._fixed_provider_id,
@@ -55,7 +55,7 @@ class FixedProviderModelRouter(ModelRouter):
         )
         routed = request.model_copy(deep=True)
         routed.model = resolved.provider_model
-        return RoutedMessagesRequest(request=routed, resolved=resolved)
+        return [RoutedMessagesRequest(request=routed, resolved=resolved)]
 
 
 def test_web_server_tool_not_detected_when_tool_only_listed():

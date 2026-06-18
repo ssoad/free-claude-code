@@ -10,7 +10,6 @@ from urllib.parse import urlsplit
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from config.settings import Settings
@@ -63,12 +62,13 @@ def _origin_is_local(origin: str | None) -> bool:
 
 def require_loopback_admin(request: Request) -> None:
     """Allow admin access via JWT Token, local machine, or via API key when remote access is enabled."""
-    from config.settings import get_settings as get_cached_settings_for_admin
-    from .dependencies import require_api_key
     from api.auth import decode_access_token
     from api.db import SessionLocal
     from api.user_models import User
-    
+    from config.settings import get_settings as get_cached_settings_for_admin
+
+    from .dependencies import require_api_key
+
     # Try JWT Authentication First (from React Admin UI)
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
@@ -306,3 +306,66 @@ async def _check_local_provider(
             "base_url": base_url,
             "error_type": type(exc).__name__,
         }
+
+
+@router.get("/admin/api/usage")
+async def get_admin_usage(request: Request):
+    require_loopback_admin(request)
+    from sqlalchemy import func
+
+    from api.db import SessionLocal
+    from api.user_models import TokenUsage, User
+
+    db = SessionLocal()
+    try:
+        results = (
+            db.query(
+                User.username,
+                TokenUsage.model_name,
+                TokenUsage.provider_id,
+                func.sum(TokenUsage.input_tokens).label("total_input"),
+                func.sum(TokenUsage.output_tokens).label("total_output"),
+            )
+            .join(User, User.id == TokenUsage.user_id)
+            .group_by(User.username, TokenUsage.model_name, TokenUsage.provider_id)
+            .all()
+        )
+
+        usage_data = []
+        for r in results:
+            usage_data.append({
+                "username": r.username,
+                "model": r.model_name,
+                "provider": r.provider_id,
+                "input_tokens": r.total_input,
+                "output_tokens": r.total_output,
+                "total_tokens": r.total_input + r.total_output
+            })
+
+        time_results = (
+            db.query(
+                func.date(TokenUsage.created_at).label("date"),
+                func.sum(TokenUsage.input_tokens).label("total_input"),
+                func.sum(TokenUsage.output_tokens).label("total_output"),
+            )
+            .group_by(func.date(TokenUsage.created_at))
+            .order_by(func.date(TokenUsage.created_at))
+            .all()
+        )
+
+        time_series_data = []
+        for r in time_results:
+            if r.date is None: continue
+            time_series_data.append({
+                "date": str(r.date),
+                "input_tokens": r.total_input or 0,
+                "output_tokens": r.total_output or 0,
+                "total_tokens": (r.total_input or 0) + (r.total_output or 0)
+            })
+
+        return {
+            "usage": usage_data,
+            "time_series": time_series_data
+        }
+    finally:
+        db.close()

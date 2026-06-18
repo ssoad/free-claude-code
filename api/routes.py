@@ -167,10 +167,10 @@ def _build_models_list_response(
 async def create_message(
     request_data: MessagesRequest,
     service: ClaudeProxyService = Depends(get_proxy_service),
-    _auth=Depends(require_api_key),
+    user=Depends(require_api_key),
 ):
     """Create a message (always streaming)."""
-    return service.create_message(request_data)
+    return service.create_message(request_data, user=user)
 
 
 @router.api_route("/v1/messages", methods=["HEAD", "OPTIONS"])
@@ -198,6 +198,12 @@ async def probe_count_tokens(_auth=Depends(require_api_key)):
 
 
 
+@router.get("/")
+async def root(_auth=Depends(require_api_key)):
+    """Root endpoint for status check."""
+    return {"status": "ok"}
+
+
 @router.api_route("/", methods=["HEAD", "OPTIONS"])
 async def probe_root():
     """Respond to unauthenticated local compatibility probes for the root endpoint."""
@@ -208,6 +214,12 @@ async def probe_root():
 async def health():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+@router.get("/api/public_config")
+async def public_config(settings: Settings = Depends(get_settings)):
+    """Public configuration endpoint for frontend (no auth required)."""
+    return {"brand_name": settings.brand_name}
 
 
 @router.api_route("/health", methods=["HEAD", "OPTIONS"])
@@ -225,8 +237,15 @@ async def list_models(
     """List the model ids this proxy advertises to Claude-compatible clients."""
     trace_event(stage="ingress", event="api.models.list", source="api")
     registry = getattr(request.app.state, "provider_registry", None)
-    provider_registry = registry if isinstance(registry, ProviderRegistry) else None
-    return _build_models_list_response(settings, provider_registry)
+    if not isinstance(registry, ProviderRegistry):
+        registry = ProviderRegistry()
+        request.app.state.provider_registry = registry
+        try:
+            await registry.refresh_model_list_cache(settings)
+        except Exception:
+            pass # ignore network errors, it will fallback to configured models
+
+    return _build_models_list_response(settings, registry)
 
 
 @router.post("/stop")

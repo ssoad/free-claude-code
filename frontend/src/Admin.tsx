@@ -25,11 +25,13 @@ import {
 
 import UserManager from './components/admin/UserManager';
 import SystemSettings, { type ConfigField } from './components/admin/SystemSettings';
+import UsageDashboard from './components/admin/UsageDashboard';
+import { useBrand } from './BrandContext';
 import { useEffect } from 'react';
 
 const drawerWidth = 260;
 
-// Create a sleek dark/light theme to match Aura's aesthetic
+// Create a sleek dark/light theme to match the app's aesthetic
 const adminTheme = createTheme({
   palette: {
     mode: localStorage.getItem('theme') === 'light' ? 'light' : 'dark',
@@ -46,6 +48,7 @@ const adminTheme = createTheme({
 });
 
 export default function Admin() {
+  const { brandName } = useBrand();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('users');
   const [fields, setFields] = useState<ConfigField[]>([]);
@@ -127,12 +130,17 @@ export default function Admin() {
   };
 
   const renderContent = () => {
-    if (activeTab === 'users') return <UserManager />;
+    if (activeTab === 'users') {
+      return <UserManager />;
+    }
+    if (activeTab === 'usage') {
+      return <UsageDashboard />;
+    }
     if (activeTab === 'overview') {
       return (
         <Box sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h4" color="text.secondary" sx={{ mt: 10 }}>
-            Welcome to the Aura Admin Dashboard
+            Welcome to the {brandName} Admin Dashboard
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
             Select a tool from the sidebar to begin managing your instance.
@@ -167,7 +175,7 @@ export default function Admin() {
         >
           <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>A</Box>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>Aura Admin</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>{brandName} Admin</Typography>
           </Box>
           <Divider />
           <List sx={{ px: 2, pt: 2 }}>
@@ -204,6 +212,18 @@ export default function Admin() {
               >
                 <ListItemIcon sx={{ minWidth: 40, color: activeTab === 'users' ? 'primary.main' : 'inherit' }}><People fontSize="small" /></ListItemIcon>
                 <ListItemText primary={<Typography sx={{ fontWeight: activeTab === 'users' ? 600 : 500, fontSize: '0.95rem' }}>Users</Typography>} />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding sx={{ mb: 1 }}>
+              <ListItemButton 
+                selected={activeTab === 'usage'} 
+                onClick={() => setActiveTab('usage')}
+                sx={{ borderRadius: 2 }}
+              >
+                <ListItemIcon sx={{ minWidth: 40, color: activeTab === 'usage' ? 'primary.main' : 'inherit' }}>
+                  <Dashboard fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary={<Typography sx={{ fontWeight: activeTab === 'usage' ? 600 : 500, fontSize: '0.95rem' }}>Usage</Typography>} />
               </ListItemButton>
             </ListItem>
 

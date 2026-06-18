@@ -126,6 +126,7 @@ def create_app(*, lifespan_enabled: bool = True) -> FastAPI:
     from .auth_routes import router as auth_router
     from .chat_routes import router as chat_router
     from .openai_routes import router as openai_router
+    from .api_keys_routes import router as api_keys_router
 
     # Register routes
     app.include_router(admin_router)
@@ -133,6 +134,7 @@ def create_app(*, lifespan_enabled: bool = True) -> FastAPI:
     app.include_router(openai_router)
     app.include_router(auth_router)
     app.include_router(chat_router)
+    app.include_router(api_keys_router)
 
     # Exception handlers
     @app.exception_handler(RequestValidationError)
@@ -236,6 +238,15 @@ def create_app(*, lifespan_enabled: bool = True) -> FastAPI:
                 and not requested_file.name.endswith(".html")
             ):
                 return FileResponse(requested_file)
+
+            # Check admin authentication before serving the SPA
+            if full_path == "admin" or full_path.startswith("admin/"):
+                from api.admin_routes import require_loopback_admin
+                try:
+                    require_loopback_admin(request)
+                except HTTPException as e:
+                    headers = dict(e.headers or {})
+                    return JSONResponse({"detail": e.detail}, status_code=e.status_code, headers=headers)
 
             # Serve index.html as fallback for React Router SPA
             index_path = frontend_dist / "index.html"

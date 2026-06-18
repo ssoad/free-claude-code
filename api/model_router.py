@@ -40,7 +40,7 @@ class ModelRouter:
     def __init__(self, settings: Settings):
         self._settings = settings
 
-    def resolve(self, claude_model_name: str) -> ResolvedModel:
+    def resolve_all(self, claude_model_name: str) -> list[ResolvedModel]:
         (
             direct_provider_id,
             direct_provider_model,
@@ -59,29 +59,33 @@ class ModelRouter:
                 direct_provider_model,
                 thinking_enabled,
             )
-            return ResolvedModel(
+            return [ResolvedModel(
                 original_model=claude_model_name,
                 provider_id=direct_provider_id,
                 provider_model=direct_provider_model,
                 provider_model_ref=claude_model_name,
                 thinking_enabled=thinking_enabled,
-            )
+            )]
 
-        provider_model_ref = self._settings.resolve_model(claude_model_name)
+        provider_model_refs = self._settings.resolve_models(claude_model_name)
         thinking_enabled = self._settings.resolve_thinking(claude_model_name)
-        provider_id = Settings.parse_provider_type(provider_model_ref)
-        provider_model = Settings.parse_model_name(provider_model_ref)
-        if provider_model != claude_model_name:
-            logger.debug(
-                "MODEL MAPPING: '{}' -> '{}'", claude_model_name, provider_model
-            )
-        return ResolvedModel(
-            original_model=claude_model_name,
-            provider_id=provider_id,
-            provider_model=provider_model,
-            provider_model_ref=provider_model_ref,
-            thinking_enabled=thinking_enabled,
-        )
+
+        resolved_list = []
+        for provider_model_ref in provider_model_refs:
+            provider_id = Settings.parse_provider_type(provider_model_ref)
+            provider_model = Settings.parse_model_name(provider_model_ref)
+            if provider_model != claude_model_name:
+                logger.debug(
+                    "MODEL MAPPING: '{}' -> '{}'", claude_model_name, provider_model
+                )
+            resolved_list.append(ResolvedModel(
+                original_model=claude_model_name,
+                provider_id=provider_id,
+                provider_model=provider_model,
+                provider_model_ref=provider_model_ref,
+                thinking_enabled=thinking_enabled,
+            ))
+        return resolved_list
 
     def _direct_provider_model(
         self, model_name: str
@@ -105,20 +109,24 @@ class ModelRouter:
             return None, None, None
         return provider_id, provider_model, None
 
-    def resolve_messages_request(
+    def resolve_messages_request_all(
         self, request: MessagesRequest
-    ) -> RoutedMessagesRequest:
-        """Return an internal routed request context."""
-        resolved = self.resolve(request.model)
-        routed = request.model_copy(deep=True)
-        routed.model = resolved.provider_model
-        return RoutedMessagesRequest(request=routed, resolved=resolved)
+    ) -> list[RoutedMessagesRequest]:
+        """Return an internal routed request context list for failover."""
+        resolved_list = self.resolve_all(request.model)
+        routed_list = []
+        for resolved in resolved_list:
+            routed = request.model_copy(deep=True)
+            routed.model = resolved.provider_model
+            routed_list.append(RoutedMessagesRequest(request=routed, resolved=resolved))
+        return routed_list
 
     def resolve_token_count_request(
         self, request: TokenCountRequest
     ) -> RoutedTokenCountRequest:
         """Return an internal token-count request context."""
-        resolved = self.resolve(request.model)
+        # For token counting, we just use the first model config
+        resolved = self.resolve_all(request.model)[0]
         routed = request.model_copy(
             update={"model": resolved.provider_model}, deep=True
         )

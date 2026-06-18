@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Sparkles } from 'lucide-react';
+import { useBrand } from './BrandContext';
 
 export default function Login({ setIsAuthenticated }: { setIsAuthenticated: (val: boolean) => void }) {
+  const { brandName } = useBrand();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -38,8 +41,9 @@ export default function Login({ setIsAuthenticated }: { setIsAuthenticated: (val
     <div className="auth-container animate-fade-in">
       <div className="auth-card">
         <div className="auth-header">
-          <h1 style={{ background: 'linear-gradient(135deg, var(--text-main) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: '2rem', marginBottom: '8px' }}>Welcome to Aura</h1>
-          <p>Sign in to your account</p>
+          <div className="auth-logo"><Sparkles size={32} /></div>
+          <h1 style={{ background: 'linear-gradient(135deg, var(--text-main) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: '2rem', marginBottom: '8px' }}>Welcome to {brandName}</h1>
+          <p style={{ color: 'var(--text-muted)' }}>Sign in to continue your journey</p>
         </div>
         
         {error && <div className="auth-error">{error}</div>}

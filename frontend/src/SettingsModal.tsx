@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, User, Sliders, Check } from 'lucide-react';
+import { X, User, Sliders, Check, Key } from 'lucide-react';
+import ApiKeyManager from './components/ApiKeyManager';
 
 interface UserProfile {
   username: string;
@@ -8,7 +9,7 @@ interface UserProfile {
 }
 
 export default function SettingsModal({ onClose, onProfileUpdate }: { onClose: () => void, onProfileUpdate: (p: UserProfile) => void }) {
-  const [activeTab, setActiveTab] = useState<'profile' | 'preferences'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'keys'>('profile');
   const [, setProfile] = useState<UserProfile | null>(null);
   
   // Profile form
@@ -104,6 +105,12 @@ export default function SettingsModal({ onClose, onProfileUpdate }: { onClose: (
           >
             <Sliders size={16} /> Preferences
           </button>
+          <button 
+            onClick={() => setActiveTab('keys')}
+            style={{ flex: 1, padding: '12px', background: 'none', border: 'none', borderBottom: activeTab === 'keys' ? '2px solid var(--accent)' : '2px solid transparent', color: activeTab === 'keys' ? 'var(--text-main)' : 'var(--text-muted)', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          >
+            <Key size={16} /> API Keys
+          </button>
         </div>
 
         <div style={{ padding: '24px' }}>
@@ -155,6 +162,8 @@ export default function SettingsModal({ onClose, onProfileUpdate }: { onClose: (
               <button type="submit" className="auth-button" style={{ marginTop: '8px' }}>Save Preferences</button>
               {prefsSuccess && <div style={{ color: 'var(--accent)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={16} /> {prefsSuccess}</div>}
             </form>
+          ) : (
+            <ApiKeyManager />
           )}
         </div>
       </div>

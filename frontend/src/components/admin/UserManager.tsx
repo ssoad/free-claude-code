@@ -12,8 +12,7 @@ import {
   Avatar,
   Chip,
   IconButton,
-  Tooltip,
-  CircularProgress
+  Tooltip
 } from '@mui/material';
 import { ManageAccounts } from '@mui/icons-material';
 
@@ -50,12 +49,12 @@ export default function UserManager() {
     }
   };
 
-  if (loading) return <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}><CircularProgress /></Box>;
+  if (loading) return <Box sx={{ p: 4 }}><Typography>Loading...</Typography></Box>;
   if (error) return <Typography color="error">{error}</Typography>;
 
   return (
-    <Box sx={{ maxWidth: 1200, width: '100%', mx: 'auto' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Box sx={{ maxWidth: 'xl', mx: 'auto', width: '100%' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>Registered Users</Typography>
       </Box>
 

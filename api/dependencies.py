@@ -92,9 +92,11 @@ def get_provider_for_type(provider_type: str) -> BaseProvider:
 
 
 def require_api_key(
-    request: Request, settings: Settings = Depends(get_settings)
-) -> None:
-    """Require a server API key (Anthropic-style).
+    request: Request,
+    settings: Settings = Depends(get_settings),
+    db: Session = Depends(get_db)
+):
+    """Require a server API key (Anthropic-style) or valid User JWT.
 
     Checks `x-api-key` header or `Authorization: Bearer ...` against
     `Settings.anthropic_auth_token`. If `ANTHROPIC_AUTH_TOKEN` is empty, this is a no-op.
@@ -132,16 +134,46 @@ def require_api_key(
     if token and ":" in token:
         token = token.split(":", 1)[0].strip()
 
+    # Check if this is a platform API key (sk-fcc- prefix)
+    if token.startswith("sk-fcc-"):
+        import hashlib
+        from datetime import UTC, datetime
+        from api.user_models import ApiKey
+
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        api_key_record = db.query(ApiKey).filter(ApiKey.key_hash == token_hash, ApiKey.is_active == True).first()
+        if not api_key_record:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+        
+        # Update last_used_at
+        api_key_record.last_used_at = datetime.now(UTC)
+        db.commit()
+
+        # Return the user associated with this API key
+        return api_key_record.user
+
     # Constant-time comparison to avoid leaking the configured token via
     # response-time differences on a per-byte mismatch (CWE-208).
-    is_valid_api_key = secrets.compare_digest(
-        token.encode("utf-8"), anthropic_auth_token.encode("utf-8")
-    )
+    is_valid_api_key = False
+    if anthropic_auth_token:
+        is_valid_api_key = secrets.compare_digest(
+            token.encode("utf-8"), anthropic_auth_token.encode("utf-8")
+        )
+        
     if not is_valid_api_key:
         from api.auth import decode_access_token
+        from api.user_models import User
 
-        if decode_access_token(token) is None:
+        payload = decode_access_token(token)
+        if payload is None or "sub" not in payload:
             raise HTTPException(status_code=401, detail="Invalid API key or token")
+
+        user = db.query(User).filter(User.username == payload["sub"]).first()
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        return user
+
+    return None
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/signin")

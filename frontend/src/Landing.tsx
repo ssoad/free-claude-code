@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Sparkles, Zap, Shield, Globe } from 'lucide-react';
+import { useBrand } from './BrandContext';
 
 export default function Landing() {
+  const { brandName } = useBrand();
   const navigate = useNavigate();
 
   return (
@@ -9,7 +11,7 @@ export default function Landing() {
       <nav className="landing-nav">
         <div className="logo-area">
           <Sparkles size={24} className="accent-icon" />
-          <span className="logo-text">Aura</span>
+          <span className="logo-text">{brandName}</span>
         </div>
         <div className="nav-actions">
           <button className="nav-link" onClick={() => navigate('/login')}>Sign In</button>
@@ -20,9 +22,9 @@ export default function Landing() {
       <main className="landing-main">
         <section className="hero-section">
           <div className="badge">✨ Next-Generation AI Platform</div>
-          <h1 className="hero-title">Experience the Power of <br/><span className="text-gradient">Aura Intelligence</span></h1>
+          <h1 className="hero-title">Experience the Power of <br/><span className="text-gradient">{brandName} Intelligence</span></h1>
           <p className="hero-subtitle">
-            A premium, distraction-free environment for interacting with state-of-the-art language models. Elevate your workflow with Aura.
+            A premium, distraction-free environment for interacting with state-of-the-art language models. Elevate your workflow with {brandName}.
           </p>
           <div className="hero-actions">
             <button className="btn-primary large" onClick={() => navigate('/register')}>
@@ -53,7 +55,7 @@ export default function Landing() {
       </main>
 
       <footer className="landing-footer">
-        <p>© {new Date().getFullYear()} Aura Platform. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} {brandName} Platform. All rights reserved.</p>
       </footer>
     </div>
   );

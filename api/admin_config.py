@@ -87,6 +87,11 @@ SECTIONS: tuple[ConfigSectionSpec, ...] = (
         "Server API token, rate limits, timeouts, and process settings.",
     ),
     ConfigSectionSpec(
+        "branding",
+        "Branding",
+        "Customize the appearance and branding of the platform.",
+    ),
+    ConfigSectionSpec(
         "messaging",
         "Messaging",
         "Discord, Telegram, CLI workspace, and session settings.",
@@ -105,7 +110,6 @@ SECTIONS: tuple[ConfigSectionSpec, ...] = (
         "diagnostics",
         "Diagnostics",
         "Logging and debugging flags.",
-        advanced=True,
     ),
     ConfigSectionSpec(
         "smoke",
@@ -479,6 +483,14 @@ FIELDS: tuple[ConfigFieldSpec, ...] = (
         description="Protects Claude/API access. It is not admin-page login.",
     ),
     ConfigFieldSpec(
+        "BRAND_NAME",
+        "Brand Name",
+        "branding",
+        settings_attr="brand_name",
+        default="Aura",
+        description="The brand name displayed across the UI (e.g., Aura, Free Claude Code).",
+    ),
+    ConfigFieldSpec(
         "PROVIDER_RATE_LIMIT",
         "Provider Rate Limit",
         "runtime",
@@ -730,7 +742,6 @@ FIELDS: tuple[ConfigFieldSpec, ...] = (
         "boolean",
         settings_attr="debug_platform_edits",
         default="false",
-        advanced=True,
     ),
     ConfigFieldSpec(
         "DEBUG_SUBAGENT_STACK",
@@ -739,7 +750,6 @@ FIELDS: tuple[ConfigFieldSpec, ...] = (
         "boolean",
         settings_attr="debug_subagent_stack",
         default="false",
-        advanced=True,
     ),
     ConfigFieldSpec(
         "LOG_RAW_API_PAYLOADS",
@@ -748,7 +758,6 @@ FIELDS: tuple[ConfigFieldSpec, ...] = (
         "boolean",
         settings_attr="log_raw_api_payloads",
         default="false",
-        advanced=True,
     ),
     ConfigFieldSpec(
         "LOG_RAW_SSE_EVENTS",
@@ -757,7 +766,6 @@ FIELDS: tuple[ConfigFieldSpec, ...] = (
         "boolean",
         settings_attr="log_raw_sse_events",
         default="false",
-        advanced=True,
     ),
     ConfigFieldSpec(
         "LOG_API_ERROR_TRACEBACKS",
@@ -766,7 +774,6 @@ FIELDS: tuple[ConfigFieldSpec, ...] = (
         "boolean",
         settings_attr="log_api_error_tracebacks",
         default="false",
-        advanced=True,
     ),
     ConfigFieldSpec(
         "LOG_RAW_MESSAGING_CONTENT",
@@ -775,7 +782,6 @@ FIELDS: tuple[ConfigFieldSpec, ...] = (
         "boolean",
         settings_attr="log_raw_messaging_content",
         default="false",
-        advanced=True,
     ),
     ConfigFieldSpec(
         "LOG_RAW_CLI_DIAGNOSTICS",
@@ -784,7 +790,6 @@ FIELDS: tuple[ConfigFieldSpec, ...] = (
         "boolean",
         settings_attr="log_raw_cli_diagnostics",
         default="false",
-        advanced=True,
     ),
     ConfigFieldSpec(
         "LOG_MESSAGING_ERROR_DETAILS",
@@ -793,7 +798,6 @@ FIELDS: tuple[ConfigFieldSpec, ...] = (
         "boolean",
         settings_attr="log_messaging_error_details",
         default="false",
-        advanced=True,
     ),
     ConfigFieldSpec(
         "FCC_SMOKE_MODEL_NVIDIA_NIM",

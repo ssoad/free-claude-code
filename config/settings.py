@@ -224,6 +224,9 @@ class Settings(BaseSettings):
         default=False, validation_alias="FCC_ADMIN_REMOTE_ACCESS"
     )
 
+    # ==================== Brand Config ====================
+    brand_name: str = Field(default="Aura", validation_alias="BRAND_NAME")
+
     # ==================== Local web server tools (web_search / web_fetch) ====================
     # Off by default: these tools perform outbound HTTP from the proxy (SSRF risk).
     enable_web_server_tools: bool = Field(
@@ -416,17 +419,19 @@ class Settings(BaseSettings):
     def validate_model_format(cls, v: str | None) -> str | None:
         if v is None:
             return None
-        if "/" not in v:
-            raise ValueError(
-                f"Model must be prefixed with provider type. "
-                f"Valid providers: {', '.join(SUPPORTED_PROVIDER_IDS)}. "
-                f"Format: provider_type/model/name"
-            )
-        provider = v.split("/", 1)[0]
-        if provider not in SUPPORTED_PROVIDER_IDS:
-            supported = ", ".join(f"'{p}'" for p in SUPPORTED_PROVIDER_IDS)
-            raise ValueError(f"Invalid provider: '{provider}'. Supported: {supported}")
-        return v
+        parts = [p.strip() for p in v.split(",") if p.strip()]
+        for part in parts:
+            if "/" not in part:
+                raise ValueError(
+                    f"Model must be prefixed with provider type. "
+                    f"Valid providers: {', '.join(SUPPORTED_PROVIDER_IDS)}. "
+                    f"Format: provider_type/model/name"
+                )
+            provider = part.split("/", 1)[0]
+            if provider not in SUPPORTED_PROVIDER_IDS:
+                supported = ", ".join(f"'{p}'" for p in SUPPORTED_PROVIDER_IDS)
+                raise ValueError(f"Invalid provider: '{provider}'. Supported: {supported}")
+        return ",".join(parts)
 
     @model_validator(mode="after")
     def check_nvidia_nim_api_key(self) -> Settings:
@@ -470,20 +475,22 @@ class Settings(BaseSettings):
         """Extract the actual model name from the default model string."""
         return Settings.parse_model_name(self.model)
 
-    def resolve_model(self, claude_model_name: str) -> str:
-        """Resolve a Claude model name to the configured provider/model string.
+    def resolve_models(self, claude_model_name: str) -> list[str]:
+        """Resolve a Claude model name to the configured provider/model strings.
 
         Classifies the incoming Claude model (opus/sonnet/haiku) and
-        returns the model-specific override if configured, otherwise the fallback MODEL.
+        returns the model-specific overrides (if configured), otherwise the fallback MODEL.
+        Returns a list of provider/model pairs for failover.
         """
         name_lower = claude_model_name.lower()
+        model_str = self.model
         if "opus" in name_lower and self.model_opus is not None:
-            return self.model_opus
-        if "haiku" in name_lower and self.model_haiku is not None:
-            return self.model_haiku
-        if "sonnet" in name_lower and self.model_sonnet is not None:
-            return self.model_sonnet
-        return self.model
+            model_str = self.model_opus
+        elif "haiku" in name_lower and self.model_haiku is not None:
+            model_str = self.model_haiku
+        elif "sonnet" in name_lower and self.model_sonnet is not None:
+            model_str = self.model_sonnet
+        return [p.strip() for p in model_str.split(",") if p.strip()]
 
     def configured_chat_model_refs(self) -> tuple[ConfiguredChatModelRef, ...]:
         """Return unique configured chat provider/model refs with source env keys."""
@@ -494,10 +501,11 @@ class Settings(BaseSettings):
             ("MODEL_HAIKU", self.model_haiku),
         )
         sources_by_ref: dict[str, list[str]] = {}
-        for source, model_ref in candidates:
-            if model_ref is None:
+        for source, model_ref_str in candidates:
+            if model_ref_str is None:
                 continue
-            sources_by_ref.setdefault(model_ref, []).append(source)
+            for model_ref in [p.strip() for p in model_ref_str.split(",") if p.strip()]:
+                sources_by_ref.setdefault(model_ref, []).append(source)
 
         return tuple(
             ConfiguredChatModelRef(
