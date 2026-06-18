@@ -138,7 +138,7 @@ export default function SettingsModal({ onClose, onProfileUpdate }: { onClose: (
               <button type="submit" className="auth-button" style={{ marginTop: '8px' }}>Save Profile</button>
               {profileSuccess && <div style={{ color: 'var(--accent)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}><Check size={16} /> {profileSuccess}</div>}
             </form>
-          ) : (
+          ) : activeTab === 'preferences' ? (
             <form onSubmit={handlePrefsSave} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>Default Model ID</label>
