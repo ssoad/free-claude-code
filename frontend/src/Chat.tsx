@@ -92,6 +92,19 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
     setIsFetchingModels(true);
     try {
       const token = localStorage.getItem('token');
+      
+      // Attempt to force a server-side backend cache refresh (will only work if admin)
+      if (token) {
+        try {
+          await fetch('/admin/api/models/refresh', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+        } catch (e) {
+          // Ignore failures, user might not be an admin
+        }
+      }
+
       const res = await fetch('/v1/models', { headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();

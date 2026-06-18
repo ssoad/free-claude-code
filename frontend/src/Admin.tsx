@@ -103,7 +103,16 @@ export default function Admin() {
       });
       const data = await res.json();
       if (data.applied) {
-        setSaveMessage('Settings saved successfully!' + (data.restart?.required ? ' Server restart pending.' : ''));
+        setSaveMessage('Settings saved successfully! Refreshing models...');
+        try {
+          await fetch('/admin/api/models/refresh', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          setSaveMessage('Settings saved and models refreshed!' + (data.restart?.required ? ' Server restart pending.' : ''));
+        } catch (e) {
+          setSaveMessage('Settings saved but failed to refresh models.');
+        }
         fetchConfig(); // Reload from server
       } else {
         setSaveMessage('Failed to save settings.');
