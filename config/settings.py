@@ -186,7 +186,12 @@ class Settings(BaseSettings):
     routing_strategy: str = Field(
         default="static", 
         validation_alias="ROUTING_STRATEGY",
-        description="Routing strategy: 'static', 'cost-optimized', 'latency-optimized'"
+        description="Routing strategy: 'static', 'cost-optimized', 'latency-optimized', 'weighted'"
+    )
+    routing_cost_registry: str = Field(
+        default='{"open_router/deepseek/deepseek-r1": 2.74, "deepseek/deepseek-v4-pro": 0.42, "nvidia_nim/qwen/qwen2.5-coder-32b-instruct": 0.0, "nvidia_nim/meta/llama-3.3-70b-instruct": 0.0, "nvidia_nim/meta/llama-3.1-8b-instruct": 0.0, "ollama/deepseek-coder": 0.0, "ollama/qwen2.5": 0.0, "ollama/llama3.2": 0.0, "openai/gpt-5-turbo": 15.0, "openai/gpt-4o": 12.5, "anthropic/claude-4-sonnet": 18.0, "anthropic/claude-4-opus": 45.0, "anthropic/claude-4-haiku": 1.5, "groq/gpt-oss-120b": 0.0}',
+        validation_alias="ROUTING_COST_REGISTRY",
+        description="JSON dictionary mapping model routes to their cost per 1M tokens."
     )
     opencode_proxy: str = Field(default="", validation_alias="OPENCODE_PROXY")
     opencode_go_proxy: str = Field(default="", validation_alias="OPENCODE_GO_PROXY")

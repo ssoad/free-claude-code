@@ -127,7 +127,11 @@ class ModelRouter:
             routed_list.append(RoutedMessagesRequest(request=routed, resolved=resolved))
             
         # Apply the selected routing strategy before returning
-        return RoutingEngine.apply_strategy(routed_list, self._settings.routing_strategy)
+        return RoutingEngine.apply_strategy(
+            routed_list, 
+            self._settings.routing_strategy, 
+            self._settings.routing_cost_registry
+        )
 
     def resolve_token_count_request(
         self, request: TokenCountRequest

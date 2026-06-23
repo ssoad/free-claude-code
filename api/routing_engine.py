@@ -1,30 +1,10 @@
+import json
 import random
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
 
 from loguru import logger
-
-# --- Cost Registry (per 1M tokens, roughly avg of Input/Output) ---
-# This serves as a static heuristic for cost-optimized fallback sorting.
-# Free tiers are 0.0.
-COST_REGISTRY: dict[str, float] = {
-    "open_router/deepseek/deepseek-r1": 2.74,
-    "deepseek/deepseek-v4-pro": 0.42,
-    "nvidia_nim/qwen/qwen2.5-coder-32b-instruct": 0.0,
-    "nvidia_nim/meta/llama-3.3-70b-instruct": 0.0,
-    "nvidia_nim/meta/llama-3.1-8b-instruct": 0.0,
-    "ollama/deepseek-coder": 0.0,
-    "ollama/qwen2.5": 0.0,
-    "ollama/llama3.2": 0.0,
-    "openai/gpt-5-turbo": 15.0,
-    "openai/gpt-4o": 12.5,
-    "anthropic/claude-4-sonnet": 18.0,
-    "anthropic/claude-4-opus": 45.0,
-    "anthropic/claude-4-haiku": 1.5,
-    "groq/gpt-oss-120b": 0.0,
-}
-
 
 # --- Latency Tracker ---
 # Tracks the rolling average TTFT (Time To First Token) per route.
@@ -85,11 +65,16 @@ def split_routing_string(full_string: str) -> list[WeightedRoute]:
 
 class RoutingEngine:
     @staticmethod
-    def get_cost(provider_id: str, provider_model: str) -> float:
+    def get_cost(provider_id: str, provider_model: str, cost_registry_json: str) -> float:
         key = f"{provider_id}/{provider_model}"
+        try:
+            cost_registry = json.loads(cost_registry_json)
+        except Exception:
+            cost_registry = {}
+            
         # Fallback to provider default if exact model not found
-        if key in COST_REGISTRY:
-            return COST_REGISTRY[key]
+        if key in cost_registry:
+            return float(cost_registry[key])
         
         # Heuristics if unknown
         if provider_id in ("ollama", "lmstudio"):
@@ -100,7 +85,7 @@ class RoutingEngine:
         return 10.0  # Assume expensive if unknown
 
     @staticmethod
-    def apply_strategy(routes: list[Any], strategy: str) -> list[Any]:
+    def apply_strategy(routes: list[Any], strategy: str, cost_registry_json: str = "{}") -> list[Any]:
         """
         Sorts the list of ResolvedRoute objects based on the strategy.
         'routes' is assumed to be a list of `ResolvedRoute` from model_router.py
@@ -133,7 +118,7 @@ class RoutingEngine:
             logger.debug("Applying cost-optimized routing strategy")
             return sorted(
                 routes, 
-                key=lambda r: RoutingEngine.get_cost(r.resolved.provider_id, r.resolved.provider_model)
+                key=lambda r: RoutingEngine.get_cost(r.resolved.provider_id, r.resolved.provider_model, cost_registry_json)
             )
 
         if strategy == "latency-optimized":
