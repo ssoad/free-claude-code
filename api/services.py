@@ -10,6 +10,7 @@ from typing import Any
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger
+from api.routing_engine import latency_tracker
 
 from config.settings import Settings
 from core.anthropic import get_token_count, get_user_facing_error_message
@@ -86,6 +87,21 @@ def _require_non_empty_messages(messages: list[Any]) -> None:
 
 import asyncio
 import json
+import time
+
+
+async def _stream_with_ttft_tracking(
+    stream: AsyncIterator[str], provider_id: str, provider_model: str
+) -> AsyncIterator[str]:
+    start_time = time.monotonic()
+    first_chunk_received = False
+
+    async for chunk in stream:
+        if not first_chunk_received:
+            ttft = time.monotonic() - start_time
+            latency_tracker.record_ttft(provider_id, provider_model, ttft)
+            first_chunk_received = True
+        yield chunk
 
 
 async def _stream_with_usage_tracking(stream, user_id, provider_id, model_name):
@@ -255,6 +271,9 @@ class ClaudeProxyService:
                                 "provider_id": routed.resolved.provider_id,
                                 "gateway_model": routed.request.model,
                             },
+                        )
+                        streamed = _stream_with_ttft_tracking(
+                            streamed, routed.resolved.provider_id, routed.resolved.provider_model
                         )
                         if user and user.id:
                             streamed = _stream_with_usage_tracking(

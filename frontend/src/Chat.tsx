@@ -107,7 +107,7 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
         }
       }
 
-      const res = await fetch('/v1/models', { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await fetch('/api/chat/models', { headers: { 'Authorization': `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
         setModels(data.data || []);
@@ -522,9 +522,20 @@ export default function Chat({ onLogout }: { onLogout: () => void }) {
               style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500, outline: 'none', cursor: 'pointer', maxWidth: '300px' }}
             >
               {models.length === 0 && <option value="">Loading models...</option>}
-              {models.map(m => (
-                <option key={m.id} value={m.id}>{m.name || m.id}</option>
-              ))}
+              {models.length > 0 && (
+                <>
+                  <optgroup label="Direct Models">
+                    {models.filter(m => m.id.startsWith('claude-')).map(m => (
+                      <option key={m.id} value={m.id}>{m.name || m.id}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Advanced Models">
+                    {models.filter(m => !m.id.startsWith('claude-')).map(m => (
+                      <option key={m.id} value={m.id}>{m.name || m.id}</option>
+                    ))}
+                  </optgroup>
+                </>
+              )}
             </select>
             <button 
               onClick={fetchModels} 

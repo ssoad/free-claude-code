@@ -11,6 +11,7 @@ from config.settings import Settings
 
 from .gateway_model_ids import decode_gateway_model_id
 from .models.anthropic import MessagesRequest, TokenCountRequest
+from .routing_engine import RoutingEngine, parse_route_string
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +21,7 @@ class ResolvedModel:
     provider_model: str
     provider_model_ref: str
     thinking_enabled: bool
+    weight: float = 1.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,12 +73,15 @@ class ModelRouter:
         thinking_enabled = self._settings.resolve_thinking(claude_model_name)
 
         resolved_list = []
-        for provider_model_ref in provider_model_refs:
+        for provider_model_ref_raw in provider_model_refs:
+            weighted_route = parse_route_string(provider_model_ref_raw)
+            provider_model_ref = weighted_route.original_string
+            
             provider_id = Settings.parse_provider_type(provider_model_ref)
             provider_model = Settings.parse_model_name(provider_model_ref)
             if provider_model != claude_model_name:
                 logger.debug(
-                    "MODEL MAPPING: '{}' -> '{}'", claude_model_name, provider_model
+                    "MODEL MAPPING: '{}' -> '{}' (weight={})", claude_model_name, provider_model, weighted_route.weight
                 )
             resolved_list.append(ResolvedModel(
                 original_model=claude_model_name,
@@ -84,6 +89,7 @@ class ModelRouter:
                 provider_model=provider_model,
                 provider_model_ref=provider_model_ref,
                 thinking_enabled=thinking_enabled,
+                weight=weighted_route.weight
             ))
         return resolved_list
 
@@ -119,7 +125,9 @@ class ModelRouter:
             routed = request.model_copy(deep=True)
             routed.model = resolved.provider_model
             routed_list.append(RoutedMessagesRequest(request=routed, resolved=resolved))
-        return routed_list
+            
+        # Apply the selected routing strategy before returning
+        return RoutingEngine.apply_strategy(routed_list, self._settings.routing_strategy)
 
     def resolve_token_count_request(
         self, request: TokenCountRequest

@@ -27,7 +27,7 @@ async def chat_completions(
     from typing import cast
 
     # We always stream, so the proxy service returns a StreamingResponse of Anthropic SSE
-    response = service.create_message(anthropic_request)
+    response = service.create_message(anthropic_request, user=_auth)
     streaming_response = cast(StreamingResponse, response)
 
     # response.body_iterator is an AsyncIterator[str] or AsyncGenerator

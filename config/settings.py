@@ -158,6 +158,20 @@ class Settings(BaseSettings):
     model_sonnet: str | None = Field(default=None, validation_alias="MODEL_SONNET")
     model_haiku: str | None = Field(default=None, validation_alias="MODEL_HAIKU")
 
+    # Abstract/Virtual Models
+    model_coding: str | None = Field(default=None, validation_alias="MODEL_CODING")
+    model_reasoning: str | None = Field(default=None, validation_alias="MODEL_REASONING")
+    model_research: str | None = Field(default=None, validation_alias="MODEL_RESEARCH")
+    model_vision: str | None = Field(default=None, validation_alias="MODEL_VISION")
+    model_fast: str | None = Field(default=None, validation_alias="MODEL_FAST")
+    model_local: str | None = Field(default=None, validation_alias="MODEL_LOCAL")
+
+    # Exposed Models for Web UI
+    chat_exposed_models: str | None = Field(
+        default="claude-sonnet-4,claude-opus-4,claude-haiku-4,coding,reasoning,research,vision,fast,local",
+        validation_alias="CHAT_EXPOSED_MODELS"
+    )
+
     # ==================== Per-Provider Proxy ====================
     nvidia_nim_proxy: str = Field(default="", validation_alias="NVIDIA_NIM_PROXY")
     open_router_proxy: str = Field(default="", validation_alias="OPENROUTER_PROXY")
@@ -167,6 +181,13 @@ class Settings(BaseSettings):
     llamacpp_proxy: str = Field(default="", validation_alias="LLAMACPP_PROXY")
     kimi_proxy: str = Field(default="", validation_alias="KIMI_PROXY")
     wafer_proxy: str = Field(default="", validation_alias="WAFER_PROXY")
+
+    # Routing Strategy Configuration
+    routing_strategy: str = Field(
+        default="static", 
+        validation_alias="ROUTING_STRATEGY",
+        description="Routing strategy: 'static', 'cost-optimized', 'latency-optimized'"
+    )
     opencode_proxy: str = Field(default="", validation_alias="OPENCODE_PROXY")
     opencode_go_proxy: str = Field(default="", validation_alias="OPENCODE_GO_PROXY")
     zai_proxy: str = Field(default="", validation_alias="ZAI_PROXY")
@@ -329,6 +350,13 @@ class Settings(BaseSettings):
         "model_opus",
         "model_sonnet",
         "model_haiku",
+        "model_coding",
+        "model_reasoning",
+        "model_research",
+        "model_vision",
+        "model_fast",
+        "model_local",
+        "chat_exposed_models",
         "enable_opus_thinking",
         "enable_sonnet_thinking",
         "enable_haiku_thinking",
@@ -490,7 +518,21 @@ class Settings(BaseSettings):
             model_str = self.model_haiku
         elif "sonnet" in name_lower and self.model_sonnet is not None:
             model_str = self.model_sonnet
-        return [p.strip() for p in model_str.split(",") if p.strip()]
+        elif "coding" in name_lower and self.model_coding is not None:
+            model_str = self.model_coding
+        elif "reasoning" in name_lower and self.model_reasoning is not None:
+            model_str = self.model_reasoning
+        elif "research" in name_lower and self.model_research is not None:
+            model_str = self.model_research
+        elif "vision" in name_lower and self.model_vision is not None:
+            model_str = self.model_vision
+        elif "fast" in name_lower and self.model_fast is not None:
+            model_str = self.model_fast
+        elif "local" in name_lower and self.model_local is not None:
+            model_str = self.model_local
+            
+        delimiter = "|" if "|" in model_str else ","
+        return [p.strip() for p in model_str.split(delimiter) if p.strip()]
 
     def configured_chat_model_refs(self) -> tuple[ConfiguredChatModelRef, ...]:
         """Return unique configured chat provider/model refs with source env keys."""
@@ -499,6 +541,12 @@ class Settings(BaseSettings):
             ("MODEL_OPUS", self.model_opus),
             ("MODEL_SONNET", self.model_sonnet),
             ("MODEL_HAIKU", self.model_haiku),
+            ("MODEL_CODING", self.model_coding),
+            ("MODEL_REASONING", self.model_reasoning),
+            ("MODEL_RESEARCH", self.model_research),
+            ("MODEL_VISION", self.model_vision),
+            ("MODEL_FAST", self.model_fast),
+            ("MODEL_LOCAL", self.model_local),
         )
         sources_by_ref: dict[str, list[str]] = {}
         for source, model_ref_str in candidates:

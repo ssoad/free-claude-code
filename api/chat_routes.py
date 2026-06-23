@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 from api.db import get_db
 from api.dependencies import get_current_user
 from api.user_models import ChatMessage, ChatSession, User
+from config.settings import Settings, get_settings
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -37,6 +39,29 @@ class MessageSyncRequest(BaseModel):
 class MessageResponse(BaseModel):
     role: str
     content: Any
+
+
+# =============================================================================
+# Routes
+# =============================================================================
+
+@router.get("/models")
+def get_chat_models(settings: Settings = Depends(get_settings)):
+    """Return the categorized models explicitly exposed for the Chat UI."""
+    exposed = settings.chat_exposed_models
+    if not exposed:
+        return {"data": []}
+    
+    models = []
+    for m in exposed.split(","):
+        m_id = m.strip()
+        if not m_id:
+            continue
+        models.append({
+            "id": m_id,
+            "name": m_id.title().replace("-", " ")
+        })
+    return {"data": models}
 
 
 @router.post("/sessions", response_model=SessionResponse)
